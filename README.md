@@ -36,7 +36,7 @@ The whole thing is self-working, with no shortcuts or mental maths, and you can 
 Other things worth knowing:
 
 - Hold the clock icon while the display shows 0 to clear the force number.
-- Numbers show in US format (`1,234.56`) by default. Tap the calculator icon to switch to European format (`1.234,56`) and back. A short note at the top shows which one is on, and the choice is remembered.
+- Numbers show in US format (`1,234.56`) by default. Double-tap the calculator icon to switch to European format (`1.234,56`) and back. A single tap does nothing. A short note at the top shows which one is on, and the choice is remembered.
 - If you pick an operator that doesn't work out cleanly in step 3, the sum on screen won't add up, though **=** still shows the force number. The hold-to-peek shows a minus sign or a decimal when that would happen.
 - While digits are still owed, **C** counts as a tap like any other key. After the digits are complete, **C** abandons the force and keeps the number set.
 - The screen goes black if the phone is turned sideways, and comes back in portrait. The real Calculator would switch to scientific mode, so keep Rotation Lock on in Control Centre for the closest match.

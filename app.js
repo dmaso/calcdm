@@ -21,6 +21,7 @@
   const STORAGE_KEY = 'calc.target';
   const FORMAT_KEY = 'calc.format';
   const TOAST_MS = 1400;
+  const DOUBLE_TAP_MS = 400;
 
   // ---------- Calculator state ----------
   // raw: the expression as entered, alternating numbers and operators, e.g. [55, '+', 6623, '+'].
@@ -705,8 +706,21 @@
     showToast(euro ? 'European · 1.234,56' : 'US · 1,234.56');
   }
 
-  // Mode (calculator icon): tap to switch the number format; hold to peek at the target,
-  // the display restores on release.
+  // Two taps within DOUBLE_TAP_MS switch the format. A single tap does nothing, so a stray
+  // tap or a peek let go too early can't change the display.
+  let lastModeTapAt = -Infinity;
+  function onModeTap() {
+    const now = performance.now();
+    if (now - lastModeTapAt < DOUBLE_TAP_MS) {
+      lastModeTapAt = -Infinity;
+      toggleFormat();
+    } else {
+      lastModeTapAt = now;
+    }
+  }
+
+  // Mode (calculator icon): double-tap to switch the number format; hold to peek at the
+  // target, the display restores on release.
   longPress(
     modeBtn,
     () => {
@@ -715,7 +729,7 @@
       fitText(textEl, displayEl);
     },
     () => render(),
-    toggleFormat,
+    onModeTap,
   );
 
   document.addEventListener('contextmenu', (e) => e.preventDefault());
