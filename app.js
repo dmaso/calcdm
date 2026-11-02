@@ -11,12 +11,17 @@
   const historyBtn = document.getElementById('historyBtn');
   const modeBtn = document.getElementById('modeBtn');
   const minuteHand = document.getElementById('minuteHand');
+  const decimalKey = keypad.querySelector('[data-key="."]');
+  const toastEl = document.getElementById('toast');
 
   const MAX_DIGITS = 9;
   const BASE_FONT = 64;
   const MIN_SCALE = 0.75;
   const LONG_PRESS_MS = 700;
   const STORAGE_KEY = 'calc.target';
+  const FORMAT_KEY = 'calc.format';
+  const TOAST_MS = 1400;
+  const DOUBLE_TAP_MS = 400;
 
   // ---------- Calculator state ----------
   // raw: the expression as entered, alternating numbers and operators, e.g. [55, '+', 6623, '+'].
@@ -24,17 +29,17 @@
   // tokens: the evaluation stack derived from raw, reduced by precedence as iOS does.
   let raw = [];
   let tokens = [];
-  let entry = null;        // string being typed ("12.5", "-0"), or null
-  let shown = 0;           // result shown when nothing is pending
-  let lastOp = null;       // for repeated "="
+  let entry = null; // string being typed ("12.5", "-0"), or null
+  let shown = 0; // result shown when nothing is pending
+  let lastOp = null; // for repeated "="
   let lastOperand = null;
-  let lastExpr = '';       // grey line above a result
+  let lastExpr = ''; // grey line above a result
 
   // ---------- Secret force state ----------
   const secret = {
-    target: null,   // number, or null
+    target: null, // number, or null
     armed: false,
-    seq: '',        // characters to feed, e.g. "1234" or "12.5"
+    seq: '', // characters to feed, e.g. "1234" or "12.5"
     idx: 0,
   };
 
@@ -44,10 +49,14 @@
 
   function apply(a, op, b) {
     switch (op) {
-      case '+': return a + b;
-      case '-': return a - b;
-      case '*': return a * b;
-      case '/': return b === 0 ? NaN : a / b;
+      case '+':
+        return a + b;
+      case '-':
+        return a - b;
+      case '*':
+        return a * b;
+      case '/':
+        return b === 0 ? NaN : a / b;
     }
     return b;
   }
@@ -57,7 +66,9 @@
     return parseFloat(n.toPrecision(9));
   }
 
-  function pending() { return raw.length > 0; }
+  function pending() {
+    return raw.length > 0;
+  }
 
   // The value the display is "on": the number being typed, the running value of a pending
   // expression, or the last result.
@@ -72,7 +83,9 @@
     while (tokens.length >= 3) {
       const op = tokens[tokens.length - 2];
       if (PREC[op] < minPrec) break;
-      const b = tokens.pop(); tokens.pop(); const a = tokens.pop();
+      const b = tokens.pop();
+      tokens.pop();
+      const a = tokens.pop();
       tokens.push(round9(apply(a, op, b)));
     }
   }
@@ -81,22 +94,40 @@
   function rebuild() {
     tokens = [];
     for (const t of raw) {
-      if (typeof t === 'string') { reduce(PREC[t]); tokens.push(t); }
-      else tokens.push(t);
+      if (typeof t === 'string') {
+        reduce(PREC[t]);
+        tokens.push(t);
+      } else tokens.push(t);
     }
   }
 
-  function addCommas(intPart) {
-    return intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  // Number format: US "1,234.56" or European (DIN 5008) "1.234,56". The engine always uses
+  // "." internally; only the display changes. US is the default.
+  let euro = false;
+  try {
+    euro = localStorage.getItem(FORMAT_KEY) === 'eu';
+  } catch (e) {}
+  function groupSep() {
+    return euro ? '.' : ',';
+  }
+  function decMark() {
+    return euro ? ',' : '.';
+  }
+
+  function groupDigits(intPart) {
+    return intPart.replace(/\B(?=(\d{3})+(?!\d))/g, groupSep());
   }
 
   // Format a typed entry string exactly as typed (keeps trailing "." / zeros).
   function formatEntry(s) {
     let neg = false;
-    if (s[0] === '-') { neg = true; s = s.slice(1); }
+    if (s[0] === '-') {
+      neg = true;
+      s = s.slice(1);
+    }
     const [i, f] = s.split('.');
-    let out = addCommas(i || '0');
-    if (f !== undefined) out += '.' + f;
+    let out = groupDigits(i || '0');
+    if (f !== undefined) out += decMark() + f;
     return (neg ? '-' : '') + out;
   }
 
@@ -108,15 +139,18 @@
     if (abs !== 0 && (abs >= 1e9 || abs < 1e-8)) {
       let [m, e] = n.toExponential(8).split('e');
       m = m.replace(/\.?0+$/, '');
-      return m + 'e' + (e[0] === '+' ? e.slice(1) : e);
+      return m.replace('.', decMark()) + 'e' + (e[0] === '+' ? e.slice(1) : e);
     }
     let s = String(round9(n));
     if (s.includes('e')) s = n.toFixed(9).replace(/\.?0+$/, '');
     let neg = false;
-    if (s[0] === '-') { neg = true; s = s.slice(1); }
+    if (s[0] === '-') {
+      neg = true;
+      s = s.slice(1);
+    }
     const [i, f] = s.split('.');
-    let out = addCommas(i);
-    if (f) out += '.' + f;
+    let out = groupDigits(i);
+    if (f) out += decMark() + f;
     return (neg ? '-' : '') + out;
   }
 
@@ -127,23 +161,28 @@
   }
 
   function rawText() {
-    return raw.map((t) => (typeof t === 'string' ? OP_SYMBOL[t] : formatNumber(t))).join('');
+    return raw
+      .map((t) => (typeof t === 'string' ? OP_SYMBOL[t] : formatNumber(t)))
+      .join('');
   }
 
   // The big white line: the expression as it's being built, or the number / result.
   function bigText() {
-    if (pending()) return rawText() + (entry !== null ? formatEntry(entry) : '');
+    if (pending())
+      return rawText() + (entry !== null ? formatEntry(entry) : '');
     return entry !== null ? formatEntry(entry) : formatNumber(shown);
   }
 
   // iOS shrinks long text to fit, down to 75% of its size, and beyond that lets it run
   // off the left edge with a fade.
   function fitText(el, container) {
-    el.style.fontSize = '';   // back to the CSS size, which scales with screen width
+    el.style.fontSize = ''; // back to the CSS size, which scales with screen width
     const base = parseFloat(getComputedStyle(el).fontSize) || BASE_FONT;
     const avail = container.clientWidth;
     if (el.scrollWidth > avail) {
-      el.style.fontSize = Math.max(base * MIN_SCALE, base * avail / el.scrollWidth).toFixed(2) + 'px';
+      el.style.fontSize =
+        Math.max(base * MIN_SCALE, (base * avail) / el.scrollWidth).toFixed(2) +
+        'px';
     }
     container.classList.toggle('clipped', el.scrollWidth > avail + 0.5);
   }
@@ -156,7 +195,7 @@
   function render() {
     textEl.textContent = bigText();
     exprTextEl.textContent = pending() ? '' : lastExpr;
-    clearKey.textContent = (entry !== null || pending()) ? 'C' : 'AC';
+    clearKey.textContent = entry !== null || pending() ? 'C' : 'AC';
     fitDisplay();
   }
 
@@ -175,7 +214,7 @@
   // ---------- Input handlers ----------
   function inputDigit(d) {
     if (entry === null) {
-      if (!pending()) lastExpr = '';   // typing after a result starts fresh
+      if (!pending()) lastExpr = ''; // typing after a result starts fresh
       entry = d === '.' ? '0.' : d;
     } else {
       if (d === '.' && entry.includes('.')) return;
@@ -198,7 +237,7 @@
         arm(op);
         return;
       }
-      raw[raw.length - 1] = op;   // change the pending operator
+      raw[raw.length - 1] = op; // change the pending operator
     } else {
       raw.push(currentValue(), op);
     }
@@ -208,7 +247,10 @@
   }
 
   function inputEquals() {
-    if (secret.armed) { finishForce(); return; }
+    if (secret.armed) {
+      finishForce();
+      return;
+    }
     if (pending()) {
       const v = currentValue();
       lastOp = raw[raw.length - 1];
@@ -220,7 +262,8 @@
       shown = tokens[0];
     } else if (lastOp !== null) {
       const v = currentValue();
-      lastExpr = formatNumber(v) + OP_SYMBOL[lastOp] + formatNumber(lastOperand);
+      lastExpr =
+        formatNumber(v) + OP_SYMBOL[lastOp] + formatNumber(lastOperand);
       shown = round9(apply(v, lastOp, lastOperand));
     } else {
       shown = currentValue();
@@ -249,13 +292,17 @@
     const last = raw[raw.length - 1];
     let result;
     if (typeof last === 'string' && (last === '+' || last === '-')) {
-      result = tokens[tokens.length - 2] * v / 100;
+      result = (tokens[tokens.length - 2] * v) / 100;
     } else {
       result = v / 100;
     }
     result = round9(result);
-    if (pending()) entry = toEntry(result) ?? '0';   // becomes the operand being entered
-    else { shown = result; entry = null; }
+    if (pending())
+      entry = toEntry(result) ?? '0'; // becomes the operand being entered
+    else {
+      shown = result;
+      entry = null;
+    }
     render();
   }
 
@@ -275,7 +322,7 @@
   function backspace() {
     if (entry === null) {
       if (pending()) {
-        raw.pop();                          // the trailing operator
+        raw.pop(); // the trailing operator
         entry = toEntry(raw.pop());
         rebuild();
         render();
@@ -283,16 +330,25 @@
       }
       if (shown === 0) return;
       entry = toEntry(shown);
-      if (entry === null) { shown = 0; render(); return; }
+      if (entry === null) {
+        shown = 0;
+        render();
+        return;
+      }
     }
     entry = entry.slice(0, -1);
-    if (entry === '' || entry === '-') { entry = null; if (!pending()) shown = 0; }
+    if (entry === '' || entry === '-') {
+      entry = null;
+      if (!pending()) shown = 0;
+    }
     render();
   }
 
   // ---------- Secret force ----------
   function loadTarget() {
-    const fromUrl = new URLSearchParams(location.search).get('t') || (location.hash.match(/^#t=(.+)$/) || [])[1];
+    const fromUrl =
+      new URLSearchParams(location.search).get('t') ||
+      (location.hash.match(/^#t=(.+)$/) || [])[1];
     if (fromUrl !== undefined && fromUrl !== null && fromUrl !== '') {
       setTarget(parseFloat(fromUrl));
       history.replaceState(null, '', location.pathname);
@@ -311,9 +367,16 @@
   //   9 o'clock  target set (and while digits are still being fed)
   //   6 o'clock  all delta digits entered, ready for =
   function showTell() {
-    let x2 = 17, y2 = 12;                                   // 3 o'clock
-    if (secret.armed && secret.idx >= secret.seq.length) { x2 = 12; y2 = 17; }   // 6 o'clock
-    else if (secret.target !== null) { x2 = 7; y2 = 12; }  // 9 o'clock
+    let x2 = 17,
+      y2 = 12; // 3 o'clock
+    if (secret.armed && secret.idx >= secret.seq.length) {
+      x2 = 12;
+      y2 = 17;
+    } // 6 o'clock
+    else if (secret.target !== null) {
+      x2 = 7;
+      y2 = 12;
+    } // 9 o'clock
     minuteHand.setAttribute('x2', String(x2));
     minuteHand.setAttribute('y2', String(y2));
   }
@@ -353,24 +416,29 @@
   function solveOperand(t, target) {
     const op = t[t.length - 1];
     if (op === '/') {
-      const f1 = evalWith(t, 1), f2 = evalWith(t, 2);
-      const b = 2 * (f1 - f2), a = f1 - b;
+      const f1 = evalWith(t, 1),
+        f2 = evalWith(t, 2);
+      const b = 2 * (f1 - f2),
+        a = f1 - b;
       return b / (target - a);
     }
-    const f0 = evalWith(t, 0), f1 = evalWith(t, 1);
+    const f0 = evalWith(t, 0),
+      f1 = evalWith(t, 1);
     return (target - f0) / (f1 - f0);
   }
 
   // The token stack there would be after pressing op now (without changing state).
   function prospectiveTokens(op) {
-    const savedRaw = raw, savedTokens = tokens;
+    const savedRaw = raw,
+      savedTokens = tokens;
     raw = raw.slice();
     const last = raw[raw.length - 1];
     if (entry === null && typeof last === 'string') raw[raw.length - 1] = op;
     else raw.push(currentValue(), op);
     rebuild();
     const out = tokens;
-    raw = savedRaw; tokens = savedTokens;
+    raw = savedRaw;
+    tokens = savedTokens;
     return out;
   }
 
@@ -413,7 +481,7 @@
 
   function finishForce() {
     const t = secret.target;
-    lastExpr = bigText();   // reads like a genuine sum, e.g. "25×40"
+    lastExpr = bigText(); // reads like a genuine sum, e.g. "25×40"
     raw = [];
     tokens = [];
     entry = null;
@@ -437,12 +505,21 @@
       return;
     }
     switch (key) {
-      case 'clear': return inputClear();
-      case 'bs': return backspace();
-      case 'negate': return inputNegate();
-      case 'percent': return inputPercent();
-      case '+': case '-': case '*': case '/': return inputOperator(key);
-      case '=': return inputEquals();
+      case 'clear':
+        return inputClear();
+      case 'bs':
+        return backspace();
+      case 'negate':
+        return inputNegate();
+      case 'percent':
+        return inputPercent();
+      case '+':
+      case '-':
+      case '*':
+      case '/':
+        return inputOperator(key);
+      case '=':
+        return inputEquals();
       default:
         if (/^[0-9.]$/.test(key)) return inputDigit(key);
     }
@@ -464,13 +541,29 @@
       feedForcedChar();
     }
   }
-  function onAnyPointerEnd(e) { activePointers.delete(e.pointerId); }
+  function onAnyPointerEnd(e) {
+    activePointers.delete(e.pointerId);
+  }
   document.addEventListener('pointerdown', onAnyPointerDown, { capture: true });
   document.addEventListener('pointerup', onAnyPointerEnd, { capture: true });
-  document.addEventListener('pointercancel', onAnyPointerEnd, { capture: true });
+  document.addEventListener('pointercancel', onAnyPointerEnd, {
+    capture: true,
+  });
   // Safety net: if a pointerup ever goes missing, an all-fingers-up touchend resets the tracker.
-  document.addEventListener('touchend', (e) => { if (e.touches.length === 0) activePointers.clear(); }, { capture: true });
-  document.addEventListener('touchcancel', (e) => { if (e.touches.length === 0) activePointers.clear(); }, { capture: true });
+  document.addEventListener(
+    'touchend',
+    (e) => {
+      if (e.touches.length === 0) activePointers.clear();
+    },
+    { capture: true },
+  );
+  document.addEventListener(
+    'touchcancel',
+    (e) => {
+      if (e.touches.length === 0) activePointers.clear();
+    },
+    { capture: true },
+  );
   document.addEventListener('visibilitychange', () => activePointers.clear());
 
   // ---------- Events ----------
@@ -492,7 +585,10 @@
   keypad.addEventListener('click', (e) => {
     const k = e.target.closest('.key');
     if (!k) return;
-    if (swallowClick) { swallowClick = false; return; }
+    if (swallowClick) {
+      swallowClick = false;
+      return;
+    }
     press(k.dataset.key);
   });
 
@@ -503,7 +599,8 @@
   let opPeeking = false;
   keypad.addEventListener('pointerdown', (e) => {
     const k = e.target.closest('.key.op');
-    if (!k || !PREC[k.dataset.key] || secret.target === null || secret.armed) return;
+    if (!k || !PREC[k.dataset.key] || secret.target === null || secret.armed)
+      return;
     const op = k.dataset.key;
     clearTimeout(opPeekTimer);
     opPeekTimer = setTimeout(() => {
@@ -513,11 +610,14 @@
     }, LONG_PRESS_MS);
   });
   const endOpPeek = () => {
-    clearTimeout(opPeekTimer); opPeekTimer = null;
+    clearTimeout(opPeekTimer);
+    opPeekTimer = null;
     if (opPeeking) {
       opPeeking = false;
       swallowClick = true;
-      setTimeout(() => { swallowClick = false; }, 300);
+      setTimeout(() => {
+        swallowClick = false;
+      }, 300);
       render();
     }
   };
@@ -527,31 +627,43 @@
 
   // Swipe on the display deletes the last character (iOS behaviour).
   let swipeStart = null;
-  displayEl.addEventListener('pointerdown', (e) => { swipeStart = { x: e.clientX, y: e.clientY }; });
+  displayEl.addEventListener('pointerdown', (e) => {
+    swipeStart = { x: e.clientX, y: e.clientY };
+  });
   displayEl.addEventListener('pointerup', (e) => {
     if (!swipeStart) return;
-    const dx = e.clientX - swipeStart.x, dy = e.clientY - swipeStart.y;
+    const dx = e.clientX - swipeStart.x,
+      dy = e.clientY - swipeStart.y;
     swipeStart = null;
     if (secret.armed) return;
     if (Math.abs(dx) > 30 && Math.abs(dy) < 50) backspace();
   });
 
-  // Long-press helper for the two round buttons.
-  function longPress(btn, onFire, onRelease) {
+  // Long-press helper for the two round buttons. onTap, if given, runs on a release
+  // before the long press has fired.
+  function longPress(btn, onFire, onRelease, onTap) {
     let timer = null;
     let fired = false;
     btn.addEventListener('pointerdown', () => {
       btn.classList.add('pressed');
       fired = false;
-      timer = setTimeout(() => { fired = true; onFire(); }, LONG_PRESS_MS);
+      timer = setTimeout(() => {
+        fired = true;
+        onFire();
+      }, LONG_PRESS_MS);
     });
     const end = () => {
       btn.classList.remove('pressed');
-      clearTimeout(timer); timer = null;
+      clearTimeout(timer);
+      timer = null;
       if (fired && onRelease) onRelease();
       fired = false;
     };
-    btn.addEventListener('pointerup', end);
+    btn.addEventListener('pointerup', () => {
+      const tapped = timer !== null && !fired;
+      end();
+      if (tapped && onTap) onTap();
+    });
     btn.addEventListener('pointercancel', end);
     btn.addEventListener('pointerleave', end);
     btn.addEventListener('contextmenu', (e) => e.preventDefault());
@@ -562,39 +674,128 @@
   longPress(historyBtn, () => {
     if (secret.armed) return;
     const v = currentValue();
-    if (v !== 0) setTarget(v); else clearTarget();
+    if (v !== 0) setTarget(v);
+    else clearTarget();
     resetAll();
   });
 
-  // Mode (calculator icon): hold to peek at the target; the display restores on release.
-  longPress(modeBtn, () => {
-    if (secret.armed || secret.target === null) return;
-    textEl.textContent = formatNumber(secret.target);
-    fitText(textEl, displayEl);
-  }, () => render());
+  // A short note at the top that fades out by itself.
+  let toastTimer = null;
+  function showToast(text) {
+    toastEl.textContent = text;
+    toastEl.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toastEl.classList.remove('show'), TOAST_MS);
+  }
+
+  function applyFormat() {
+    decimalKey.textContent = decMark();
+  }
+
+  // Switch between US and European number format. Not while armed: every tap is a digit then.
+  function toggleFormat() {
+    if (secret.armed) return;
+    euro = !euro;
+    try {
+      localStorage.setItem(FORMAT_KEY, euro ? 'eu' : 'us');
+    } catch (e) {}
+    // The grey line is stored as text, so swap its separators.
+    lastExpr = lastExpr.replace(/[.,]/g, (c) => (c === '.' ? ',' : '.'));
+    applyFormat();
+    render();
+    showToast(euro ? 'European · 1.234,56' : 'US · 1,234.56');
+  }
+
+  // Two taps within DOUBLE_TAP_MS switch the format. A single tap does nothing, so a stray
+  // tap or a peek let go too early can't change the display.
+  let lastModeTapAt = -Infinity;
+  function onModeTap() {
+    const now = performance.now();
+    if (now - lastModeTapAt < DOUBLE_TAP_MS) {
+      lastModeTapAt = -Infinity;
+      toggleFormat();
+    } else {
+      lastModeTapAt = now;
+    }
+  }
+
+  // Mode (calculator icon): double-tap to switch the number format; hold to peek at the
+  // target, the display restores on release.
+  longPress(
+    modeBtn,
+    () => {
+      if (secret.armed || secret.target === null) return;
+      textEl.textContent = formatNumber(secret.target);
+      fitText(textEl, displayEl);
+    },
+    () => render(),
+    onModeTap,
+  );
 
   document.addEventListener('contextmenu', (e) => e.preventDefault());
   document.addEventListener('gesturestart', (e) => e.preventDefault());
-  document.addEventListener('touchmove', (e) => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
+  document.addEventListener(
+    'touchmove',
+    (e) => {
+      if (e.touches.length > 1) e.preventDefault();
+    },
+    { passive: false },
+  );
 
   // Keyboard support (handy on desktop).
   document.addEventListener('keydown', (e) => {
-    const map = { Enter: '=', '=': '=', Backspace: 'bs', Escape: 'clear', '%': 'percent', x: '*', X: '*' };
+    const map = {
+      Enter: '=',
+      '=': '=',
+      Backspace: 'bs',
+      Escape: 'clear',
+      '%': 'percent',
+      x: '*',
+      X: '*',
+      ',': '.',
+    };
     const key = map[e.key] || e.key;
-    if (/^[0-9.+\-*\/=]$/.test(key) || key === 'clear' || key === 'percent' || key === 'bs') press(key);
+    if (
+      /^[0-9.+\-*\/=]$/.test(key) ||
+      key === 'clear' ||
+      key === 'percent' ||
+      key === 'bs'
+    )
+      press(key);
   });
 
   // Sideways: the CSS blanks the screen. Back in portrait, refit the text and make sure
   // nothing is left scrolled.
-  window.addEventListener('resize', () => { window.scrollTo(0, 0); fitDisplay(); });
+  window.addEventListener('resize', () => {
+    window.scrollTo(0, 0);
+    fitDisplay();
+  });
 
-  if ('serviceWorker' in navigator && location.protocol !== 'file:' && !location.search.includes('nosw')) {
+  if (
+    'serviceWorker' in navigator &&
+    location.protocol !== 'file:' &&
+    !location.search.includes('nosw')
+  ) {
     navigator.serviceWorker.register('sw.js').catch(() => {});
   }
 
   loadTarget();
+  applyFormat();
   render();
 
   // Debug hooks (not visible in UI).
-  window.__calc = { press, state: () => ({ raw: raw.slice(), tokens: tokens.slice(), entry, shown, lastExpr, secret: { ...secret } }), setTarget, clearTarget, neededFor };
+  window.__calc = {
+    press,
+    state: () => ({
+      raw: raw.slice(),
+      tokens: tokens.slice(),
+      entry,
+      shown,
+      lastExpr,
+      secret: { ...secret },
+    }),
+    setTarget,
+    clearTarget,
+    neededFor,
+  };
 })();

@@ -1,6 +1,6 @@
 // Stale-while-revalidate service worker: serves from cache instantly (works offline),
 // refreshes the cache in the background so the next launch picks up updates.
-const CACHE = 'calc-v11';
+const CACHE = 'calc-v14';
 const ASSETS = ['./', './index.html', './style.css', './app.js', './manifest.webmanifest', './calc-icon.png'];
 
 self.addEventListener('install', (e) => {

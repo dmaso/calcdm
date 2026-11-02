@@ -36,6 +36,7 @@ The whole thing is self-working, with no shortcuts or mental maths, and you can 
 Other things worth knowing:
 
 - Hold the clock icon while the display shows 0 to clear the force number.
+- Numbers show in US format (`1,234.56`) by default. Double-tap the calculator icon to switch to European format (`1.234,56`) and back. A single tap does nothing. A short note at the top shows which one is on, and the choice is remembered.
 - If you pick an operator that doesn't work out cleanly in step 3, the sum on screen won't add up, though **=** still shows the force number. The hold-to-peek shows a minus sign or a decimal when that would happen.
 - While digits are still owed, **C** counts as a tap like any other key. After the digits are complete, **C** abandons the force and keeps the number set.
 - The screen goes black if the phone is turned sideways, and comes back in portrait. The real Calculator would switch to scientific mode, so keep Rotation Lock on in Control Centre for the closest match.
@@ -59,4 +60,6 @@ Static files, no build step.
 - `manifest.webmanifest`, `sw.js` — Home Screen install and offline cache
 - `reference/` — the iOS screenshots used for calibration and `compare.html`, a dev page that overlays one on the live app (`?ref=ios26|result&mode=diff|half|off`)
 
-Deploy with `netlify deploy --prod --dir .` from the project folder (it's linked to the Netlify site).
+Deploy to Netlify with `netlify deploy --prod --dir .` from the project folder (it's linked to the Netlify site).
+
+To host it anywhere else, run `./build.sh` and upload the contents of `dist/` to the web root over SFTP. The site must be served over HTTPS for offline use and Add to Home Screen to work.

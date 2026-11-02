@@ -97,6 +97,26 @@ button svg {
 .round.mode { right: var(--pad-x); }
 .round.pressed { transition: none; background: #3a3a3a; }
 
+/* Brief note between the round buttons (number format switch) */
+.toast {
+  position: absolute;
+  top: calc(var(--safe-top) + 10 * var(--u));
+  left: 50%;
+  transform: translateX(-50%);
+  height: calc(24 * var(--u));
+  padding: 0 calc(12 * var(--u));
+  border-radius: calc(12 * var(--u));
+  background: rgba(255, 255, 255, 0.08);
+  color: #8e8e93;
+  font-size: calc(14 * var(--u));
+  line-height: calc(24 * var(--u));
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.25s ease-out;
+}
+.toast.show { opacity: 1; }
+
 /* Keypad. Anchored from the top: in a home-screen web app iOS reports a viewport that is
    shorter than the screen by the status-bar height, so bottom anchoring lands too high.
    The screen aspect ratio is the same on all recent iPhones, so top offsets in --u scale fine. */
