@@ -15,6 +15,20 @@
   const minuteHand = document.getElementById('minuteHand');
   const decimalKey = document.querySelector('[data-key="."]');
   const digitKeys = Array.from(document.querySelectorAll('.key.num')).filter((k) => /^\d$/.test(k.dataset.key));
+  const signKeys = Array.from(document.querySelectorAll('.key.op')).filter((k) => k.dataset.key === '+' || k.dataset.key === '-');
+
+  // Each hint key's speck sits below the symbol, a little right of centre, with a slightly
+  // different spot, size and shape per key, so it reads as dust rather than a mark.
+  // Picked once per launch, so a key's speck doesn't move between presses.
+  const between = (a, b) => a + Math.random() * (b - a);
+  digitKeys.concat(signKeys).forEach((key) => {
+    const corner = () => between(35, 65).toFixed(0) + '%';
+    key.style.setProperty('--speck-x', between(55, 62).toFixed(1) + '%');
+    key.style.setProperty('--speck-y', between(78, 83).toFixed(1) + '%');
+    key.style.setProperty('--speck-size', between(1.4, 1.9).toFixed(2));
+    key.style.setProperty('--speck-shape', [corner(), corner(), corner(), corner()].join(' '));
+    key.style.setProperty('--speck-rot', between(0, 180).toFixed(0) + 'deg');
+  });
 
   const MAX_DIGITS = 9;
   const BASE_FONT = 64;
@@ -191,6 +205,7 @@
       : (pending() ? '' : lastExpr);
     clearKey.textContent = (entry !== null || pending() || newTrick.active) ? 'C' : 'AC';
     fitDisplay();
+    updateHints();
   }
 
   function resetAll() {
@@ -248,9 +263,11 @@
     lastExpr = '';
     const last = raw[raw.length - 1];
     if (entry === null && typeof last === 'string') {
-      // Operator pressed again with nothing typed in between: the same one arms the force.
-      if (last === op && secret.target !== null && !secret.armed) {
-        arm(op);
+      // Operator pressed again with nothing typed in between: arms the force, but only on
+      // the operator the live dot points to, so the sum always really reaches the target.
+      const g = last === op ? guide() : null;
+      if (g && g.op === op) {
+        arm(g.seq);
         return;
       }
       raw[raw.length - 1] = op;   // change the pending operator
@@ -418,13 +435,20 @@
     else if (secret.target !== null) { x2 = 7; y2 = 12; }  // 9 o'clock
     minuteHand.setAttribute('x2', String(x2));
     minuteHand.setAttribute('y2', String(y2));
-    updateSecretCountHint();
+    updateHints();
   }
 
-  function updateSecretCountHint() {
-    digitKeys.forEach((key) => key.classList.remove('secret-count-hint'));
-    if (!secret.armed || secret.started) return;
-    const count = (secret.seq.match(/\d/g) || []).length;
+  // The live dots. With a force number set and not armed, a dot sits under + or −,
+  // whichever reaches the target from what's on screen now, and another under the number
+  // key for how many digits that would take. Both update after every key, and both go
+  // as soon as the force is armed.
+  function updateHints() {
+    digitKeys.concat(signKeys).forEach((key) => key.classList.remove('secret-count-hint'));
+    const g = guide();   // null while armed
+    if (!g) return;
+    const signKey = signKeys.find((candidate) => candidate.dataset.key === g.op);
+    if (signKey) signKey.classList.add('secret-count-hint');
+    const count = (g.seq.match(/\d/g) || []).length;
     const key = digitKeys.find((candidate) => candidate.dataset.key === String(count));
     if (key) key.classList.add('secret-count-hint');
   }
@@ -517,11 +541,23 @@
     return round9(solveOperand(prospectiveTokens(op), secret.target));
   }
 
-  function arm(op) {
-    let q = solveOperand(tokens, secret.target);
-    q = Math.abs(round9(q));
-    let seq = isFinite(q) ? String(q) : '0';
-    if (seq.includes('e')) seq = q.toFixed(8).replace(/\.?0+$/, '');
+  // Which of + or − reaches the target from the current state, and the digits to enter
+  // after it. null when there's no force number, it's armed, the screen already shows the
+  // target, or the number needed has too many digits to type.
+  function guide() {
+    if (secret.target === null || secret.mode !== 'classic' || secret.armed ||
+        newTrick.active || newTrick.ready) return null;
+    const need = round9(solveOperand(prospectiveTokens('+'), secret.target));
+    if (!Number.isFinite(need) || need === 0) return null;
+    const op = need > 0 ? '+' : '-';
+    const q = Math.abs(need);
+    const seq = String(q);
+    if (!/^\d+(\.\d+)?$/.test(seq) || (seq.match(/\d/g) || []).length > MAX_DIGITS) return null;
+    if (round9(evalWith(prospectiveTokens(op), q)) !== secret.target) return null;
+    return { op, seq };
+  }
+
+  function arm(seq) {
     secret.seq = seq;
     secret.idx = 0;
     secret.started = false;
@@ -886,5 +922,5 @@
   render();
 
   // Debug hooks (not visible in UI).
-  window.__calc = { press, state: () => ({ raw: raw.slice(), tokens: tokens.slice(), entry, shown, lastExpr, secret: { ...secret } }), setTarget, clearTarget, neededFor };
+  window.__calc = { press, state: () => ({ raw: raw.slice(), tokens: tokens.slice(), entry, shown, lastExpr, secret: { ...secret } }), setTarget, clearTarget, neededFor, guide };
 })();

@@ -137,17 +137,21 @@ button svg {
 .key.fn.pressed, .key.fn.secret-feedback  { background: var(--fn-press); }
 .key.op.pressed, .key.op.secret-feedback  { background: var(--orange-press); }
 
-/* While a force is armed, a small dot under a number key shows how many digits it needs */
+/* With a force number set, a small dot under + or − shows which one reaches it, and one under
+   a number key shows how many digits that takes. Both go once the force is armed. They sit
+   below the symbol, a little to the right, and each key's speck has a slightly different
+   spot, size and shape (set in app.js), so they look like dust rather than a mark. */
 .key.secret-count-hint::after {
   content: "";
   position: absolute;
-  left: 50%;
-  bottom: 19%;
-  width: calc(2 * var(--u));
-  height: calc(2 * var(--u));
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.88);
-  transform: translateX(-50%);
+  left: var(--speck-x, 58%);
+  top: var(--speck-y, 80%);
+  width: calc(var(--speck-size, 1.6) * var(--u));
+  height: calc(var(--speck-size, 1.6) * var(--u));
+  border-radius: var(--speck-shape, 50%);
+  background: rgba(255, 255, 255, 0.8);
+  box-shadow: 0 0 calc(0.5 * var(--u)) rgba(255, 255, 255, 0.35);
+  transform: translate(-50%, -50%) rotate(var(--speck-rot, 0deg));
   pointer-events: none;
 }
 

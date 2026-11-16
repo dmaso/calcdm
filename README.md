@@ -31,6 +31,17 @@ The icon looks the same as Apple's Calculator. Put one of them somewhere you'll 
 
 The display clears and the clock hand swings to **9 o'clock**. That tells you the number is saved. It stays saved if you close and reopen the app.
 
+From now on, two tiny white specks show you where you stand:
+
+- One on **+** or **−**: the operator that gets from the number on screen to your force number.
+- One on a **number key**: how many digits that would take.
+
+They update after every key, so you always know whether you're above or below your force number, and by how much. If you're far off, you can do another calculation to get closer before you start the force.
+
+The specks sit just below the symbol, a little to the right, and look like dust on the screen.
+
+No specks means the screen already shows your force number, or the number needed is too long to type (over 9 digits). Do another calculation to bring it back in range.
+
 **Peek at it:** press and hold the decimal key (`.` or `,`, left of `=`). The saved number shows while you hold it.
 
 **Clear it:** press and hold the delete key (top left of the keypad). This resets the calculator and the clock hand goes to **3 o'clock**. You don't need to do this after a performance, because a completed force clears itself.
@@ -39,19 +50,15 @@ The display clears and the clock hand swings to **9 o'clock**. That tells you th
 
 1. **Do ordinary calculations.** Let the spectator add, subtract, multiply or divide. Division tends to give long decimals, so use it with care.
 
-2. **Pick the final operator.** Use **+** if the total is below your force number, or **−** if it's above. **×** and **÷** work too.
+2. **Check the number-key speck, then tap the operator with the speck twice.** The number-key speck is how many digits will be entered, so you know whether to ask for "a couple" of taps or "a bunch". The double tap arms the force, and both specks go. Double-tapping the other operator does nothing, so the maths always comes out right.
 
-   Not sure which to use? **Hold** an operator and the display shows the number that would need to follow it. Let go and nothing has changed.
+   Want to see the actual number? **Hold** an operator and the display shows the number that would need to follow it. Let go and nothing has changed.
 
-3. **Tap that operator twice.** The force is now armed. The app works out the number needed to reach your force number.
-
-   A **tiny dot** appears under one of the number keys. That number is how many digits will be entered, so you know whether to ask for "a couple" of taps or "a bunch". The dot goes when the tapping starts.
-
-4. **Have the spectator drum their fingers** on the screen. Each tap enters the next digit of the needed number, wherever it lands. Every key works the same way, delete included, so nothing can be undone by accident. The key for each digit entered lights up briefly.
+3. **Have the spectator drum their fingers** on the screen. Each tap enters the next digit of the needed number, wherever it lands. Every key works the same way, delete included, so nothing can be undone by accident. The key for each digit entered lights up briefly.
 
    The clock hand moves to **6 o'clock** when all the digits are in. Have them stop there. Extra taps do nothing.
 
-5. **Press =.** The result is your force number.
+4. **Press =.** The result is your force number.
 
 ## Quick reference
 
@@ -60,9 +67,10 @@ The display clears and the clock hand swings to **9 o'clock**. That tells you th
 | Type a number, tap the clock | Saves the force number (clock at 9) |
 | Hold the decimal key | Peeks at the saved number |
 | Hold delete | Full reset, clears the saved number (clock at 3) |
+| Speck on + or − | The operator that reaches your force number |
+| Speck on a number key | How many digits that takes |
+| Tap the operator with the speck twice | Arms the force |
 | Hold an operator | Shows the number needed after it |
-| Tap an operator twice | Arms the force |
-| Dot under a number key | How many digits will be entered |
 | Clock at 6 | All digits in, ready for = |
 
 ## Good to know
@@ -74,7 +82,7 @@ The display clears and the clock hand swings to **9 o'clock**. That tells you th
 ## Credits
 
 - Original app by [Dave Mason](https://github.com/dmaso).
-- One-tap setup, the peek and reset gestures, the digit-count dot, the lit keys, and making every key enter the next digit during the force, by [Demian Max](https://github.com/100ratings/sumduo).
+- One-tap setup, the peek and reset gestures, the digit-count dot, the lit keys, making every key enter the next digit during the force, and showing whether to add or subtract, by [Demian Max](https://github.com/100ratings/sumduo).
 - US English version and instructions by [Andy](https://github.com/andyjermann/sumduo).
 - European number format by [Groschenroman](https://github.com/Groschenroman/calcdm).
 - Started from [andyjermann/fakecalc](https://github.com/andyjermann/fakecalc).
