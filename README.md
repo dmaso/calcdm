@@ -36,7 +36,7 @@ From now on, two tiny white specks show you where you stand:
 - One on **+** or **−**: the operator that gets from the number on screen to your force number.
 - One on a **number key**: how many digits that would take.
 
-They update after every key, so you always know whether you're above or below your force number, and by how much. If you're far off, you can do another calculation to get closer before you start the force.
+They update each time `=` or an operator is pressed, and stay still while numbers are typed. So after every step you know whether you're above or below your force number, and by how much. If you're far off, you can do another calculation to get closer before you start the force. Right after you set the force number there are no specks until the first `=` or operator.
 
 The specks sit just below the symbol, a little to the right, and look like dust on the screen.
 

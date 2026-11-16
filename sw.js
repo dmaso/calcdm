@@ -1,10 +1,13 @@
 // Stale-while-revalidate service worker: serves from cache instantly (works offline),
 // refreshes the cache in the background so the next launch picks up updates.
-const CACHE = 'calc-v17';
+const CACHE = 'calc-v18';   // bump on every deploy, so phones pick up the new version
 const ASSETS = ['./', './index.html', './style.css', './app.js', './manifest.webmanifest', './calc-icon.png'];
 
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));
+  // cache: 'reload' skips the browser's HTTP cache, so a new version caches the new files.
+  e.waitUntil(caches.open(CACHE)
+    .then((c) => c.addAll(ASSETS.map((url) => new Request(url, { cache: 'reload' }))))
+    .then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', (e) => {
