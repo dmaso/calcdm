@@ -401,7 +401,12 @@
         render();
         return;
       }
-      if (shown === 0) return;
+      // Editing a result clears its grey expression and forgets the last operation, as on iOS
+      // (from Demian Max's version).
+      lastExpr = '';
+      lastOp = null;
+      lastOperand = null;
+      if (shown === 0) { render(); return; }
       entry = toEntry(shown);
       if (entry === null) { shown = 0; render(); return; }
     }
