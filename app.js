@@ -427,23 +427,15 @@
 
   // The live dots. With a force number set and not armed, a dot sits under + or −,
   // whichever reaches the target from what's on screen now, and another under the number
-  // key for how many digits that would take. Both update after every key. Once armed,
-  // only the digit-count dot stays, until the first digit is fed.
+  // key for how many digits that would take. Both update after every key, and both go
+  // as soon as the force is armed.
   function updateHints() {
     digitKeys.concat(signKeys).forEach((key) => key.classList.remove('secret-count-hint'));
-    let seq = null;
-    if (secret.armed) {
-      if (!secret.started) seq = secret.seq;
-    } else {
-      const g = guide();
-      if (g) {
-        seq = g.seq;
-        const signKey = signKeys.find((candidate) => candidate.dataset.key === g.op);
-        if (signKey) signKey.classList.add('secret-count-hint');
-      }
-    }
-    if (!seq) return;
-    const count = (seq.match(/\d/g) || []).length;
+    const g = guide();   // null while armed
+    if (!g) return;
+    const signKey = signKeys.find((candidate) => candidate.dataset.key === g.op);
+    if (signKey) signKey.classList.add('secret-count-hint');
+    const count = (g.seq.match(/\d/g) || []).length;
     const key = digitKeys.find((candidate) => candidate.dataset.key === String(count));
     if (key) key.classList.add('secret-count-hint');
   }

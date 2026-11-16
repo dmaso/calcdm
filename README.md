@@ -31,7 +31,7 @@ The icon looks the same as Apple's Calculator. Put one of them somewhere you'll 
 
 The display clears and the clock hand swings to **9 o'clock**. That tells you the number is saved. It stays saved if you close and reopen the app.
 
-From now on, two tiny dots show you where you stand:
+From now on, two tiny dark orange dots show you where you stand:
 
 - One under **+** or **−**: the operator that gets from the number on screen to your force number.
 - One under a **number key**: how many digits that would take.
@@ -48,9 +48,7 @@ No dots means the screen already shows your force number, or the number needed i
 
 1. **Do ordinary calculations.** Let the spectator add, subtract, multiply or divide. Division tends to give long decimals, so use it with care.
 
-2. **Tap the operator with the dot twice.** The force is now armed, and the dot under the operator goes. Double-tapping the other operator does nothing, so the maths always comes out right.
-
-   The dot under the number key stays. That's how many digits will be entered, so you know whether to ask for "a couple" of taps or "a bunch". It goes when the tapping starts.
+2. **Check the number-key dot, then tap the operator with the dot twice.** The number-key dot is how many digits will be entered, so you know whether to ask for "a couple" of taps or "a bunch". The double tap arms the force, and both dots go. Double-tapping the other operator does nothing, so the maths always comes out right.
 
    Want to see the actual number? **Hold** an operator and the display shows the number that would need to follow it. Let go and nothing has changed.
 

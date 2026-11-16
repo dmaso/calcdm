@@ -6,6 +6,7 @@
   --orange: #ff9201;
   --orange-dark: #fa8c00;
   --orange-press: #fcc78d;
+  --hint-dot: #b85f00;
   --fn: #5e5e5e;
   --fn-dark: #525252;
   --fn-press: #a5a5a8;
@@ -138,7 +139,8 @@ button svg {
 .key.op.pressed, .key.op.secret-feedback  { background: var(--orange-press); }
 
 /* With a force number set, a small dot under + or − shows which one reaches it, and one under
-   a number key shows how many digits that takes. Once armed, only the digit-count dot stays. */
+   a number key shows how many digits that takes. Both go once the force is armed. Dark orange,
+   so they're hard to spot unless you know to look. */
 .key.secret-count-hint::after {
   content: "";
   position: absolute;
@@ -147,7 +149,7 @@ button svg {
   width: calc(2 * var(--u));
   height: calc(2 * var(--u));
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.88);
+  background: var(--hint-dot);
   transform: translateX(-50%);
   pointer-events: none;
 }
