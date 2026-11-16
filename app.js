@@ -17,14 +17,17 @@
   const digitKeys = Array.from(document.querySelectorAll('.key.num')).filter((k) => /^\d$/.test(k.dataset.key));
   const signKeys = Array.from(document.querySelectorAll('.key.op')).filter((k) => k.dataset.key === '+' || k.dataset.key === '-');
 
-  // Give each hint key its own random spot for its dot, somewhere in the ring between the
-  // symbol and the edge, so the dots look like specks rather than a deliberate mark.
-  // Picked once per launch, so a key's speck doesn't jump around between presses.
+  // Each hint key's speck sits below the symbol, a little right of centre, with a slightly
+  // different spot, size and shape per key, so it reads as dust rather than a mark.
+  // Picked once per launch, so a key's speck doesn't move between presses.
+  const between = (a, b) => a + Math.random() * (b - a);
   digitKeys.concat(signKeys).forEach((key) => {
-    const angle = Math.random() * 2 * Math.PI;
-    const radius = 30 + Math.random() * 8;   // % of the key's size, from its centre
-    key.style.setProperty('--speck-x', (50 + radius * Math.cos(angle)).toFixed(1) + '%');
-    key.style.setProperty('--speck-y', (50 + radius * Math.sin(angle)).toFixed(1) + '%');
+    const corner = () => between(35, 65).toFixed(0) + '%';
+    key.style.setProperty('--speck-x', between(55, 62).toFixed(1) + '%');
+    key.style.setProperty('--speck-y', between(78, 83).toFixed(1) + '%');
+    key.style.setProperty('--speck-size', between(1.4, 1.9).toFixed(2));
+    key.style.setProperty('--speck-shape', [corner(), corner(), corner(), corner()].join(' '));
+    key.style.setProperty('--speck-rot', between(0, 180).toFixed(0) + 'deg');
   });
 
   const MAX_DIGITS = 9;

@@ -38,7 +38,7 @@ From now on, two tiny white specks show you where you stand:
 
 They update after every key, so you always know whether you're above or below your force number, and by how much. If you're far off, you can do another calculation to get closer before you start the force.
 
-Each key puts its speck in a random spot around the symbol, so look at the whole key.
+The specks sit just below the symbol, a little to the right, and look like dust on the screen.
 
 No specks means the screen already shows your force number, or the number needed is too long to type (over 9 digits). Do another calculation to bring it back in range.
 
