@@ -17,6 +17,16 @@
   const digitKeys = Array.from(document.querySelectorAll('.key.num')).filter((k) => /^\d$/.test(k.dataset.key));
   const signKeys = Array.from(document.querySelectorAll('.key.op')).filter((k) => k.dataset.key === '+' || k.dataset.key === '-');
 
+  // Give each hint key its own random spot for its dot, somewhere in the ring between the
+  // symbol and the edge, so the dots look like specks rather than a deliberate mark.
+  // Picked once per launch, so a key's speck doesn't jump around between presses.
+  digitKeys.concat(signKeys).forEach((key) => {
+    const angle = Math.random() * 2 * Math.PI;
+    const radius = 30 + Math.random() * 8;   // % of the key's size, from its centre
+    key.style.setProperty('--speck-x', (50 + radius * Math.cos(angle)).toFixed(1) + '%');
+    key.style.setProperty('--speck-y', (50 + radius * Math.sin(angle)).toFixed(1) + '%');
+  });
+
   const MAX_DIGITS = 9;
   const BASE_FONT = 64;
   const MIN_SCALE = 0.75;

@@ -31,14 +31,16 @@ The icon looks the same as Apple's Calculator. Put one of them somewhere you'll 
 
 The display clears and the clock hand swings to **9 o'clock**. That tells you the number is saved. It stays saved if you close and reopen the app.
 
-From now on, two tiny dark orange dots show you where you stand:
+From now on, two tiny white specks show you where you stand:
 
-- One under **+** or **−**: the operator that gets from the number on screen to your force number.
-- One under a **number key**: how many digits that would take.
+- One on **+** or **−**: the operator that gets from the number on screen to your force number.
+- One on a **number key**: how many digits that would take.
 
 They update after every key, so you always know whether you're above or below your force number, and by how much. If you're far off, you can do another calculation to get closer before you start the force.
 
-No dots means the screen already shows your force number, or the number needed is too long to type (over 9 digits). Do another calculation to bring it back in range.
+Each key puts its speck in a random spot around the symbol, so look at the whole key.
+
+No specks means the screen already shows your force number, or the number needed is too long to type (over 9 digits). Do another calculation to bring it back in range.
 
 **Peek at it:** press and hold the decimal key (`.` or `,`, left of `=`). The saved number shows while you hold it.
 
@@ -48,7 +50,7 @@ No dots means the screen already shows your force number, or the number needed i
 
 1. **Do ordinary calculations.** Let the spectator add, subtract, multiply or divide. Division tends to give long decimals, so use it with care.
 
-2. **Check the number-key dot, then tap the operator with the dot twice.** The number-key dot is how many digits will be entered, so you know whether to ask for "a couple" of taps or "a bunch". The double tap arms the force, and both dots go. Double-tapping the other operator does nothing, so the maths always comes out right.
+2. **Check the number-key speck, then tap the operator with the speck twice.** The number-key speck is how many digits will be entered, so you know whether to ask for "a couple" of taps or "a bunch". The double tap arms the force, and both specks go. Double-tapping the other operator does nothing, so the maths always comes out right.
 
    Want to see the actual number? **Hold** an operator and the display shows the number that would need to follow it. Let go and nothing has changed.
 
@@ -65,9 +67,9 @@ No dots means the screen already shows your force number, or the number needed i
 | Type a number, tap the clock | Saves the force number (clock at 9) |
 | Hold the decimal key | Peeks at the saved number |
 | Hold delete | Full reset, clears the saved number (clock at 3) |
-| Dot under + or − | The operator that reaches your force number |
-| Dot under a number key | How many digits that takes |
-| Tap the dotted operator twice | Arms the force |
+| Speck on + or − | The operator that reaches your force number |
+| Speck on a number key | How many digits that takes |
+| Tap the operator with the speck twice | Arms the force |
 | Hold an operator | Shows the number needed after it |
 | Clock at 6 | All digits in, ready for = |
 
