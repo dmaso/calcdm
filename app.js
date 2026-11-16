@@ -14,6 +14,7 @@
   const modeBtn = document.getElementById('modeBtn');
   const minuteHand = document.getElementById('minuteHand');
   const decimalKey = document.querySelector('[data-key="."]');
+  const percentKey = document.querySelector('[data-key="percent"]');
   const digitKeys = Array.from(document.querySelectorAll('.key.num')).filter((k) => /^\d$/.test(k.dataset.key));
   const signKeys = Array.from(document.querySelectorAll('.key.op')).filter((k) => k.dataset.key === '+' || k.dataset.key === '-');
 
@@ -36,6 +37,7 @@
   const LONG_PRESS_MS = 700;
   const STORAGE_KEY = 'calc.target';
   const MODE_STORAGE_KEY = 'calc.mode';
+  const SPECKS_STORAGE_KEY = 'calc.specks';
 
   // ---------- Version (from the path) ----------
   // The same files are served at /, /us/, /uk/ and /eu/ (see netlify.toml). The path picks
@@ -78,6 +80,7 @@
     base: null,
     placeholder: null,
   };
+  let specksOn = localStorage.getItem(SPECKS_STORAGE_KEY) !== 'off';   // hold % to toggle
   let decimalPeekTimer = null;
   let decimalPeeking = false;
 
@@ -441,11 +444,11 @@
   // The live dots. With a force number set and not armed, a dot sits under + or −,
   // whichever reaches the target from what's on screen now, and another under the number
   // key for how many digits that would take. Both update after every key, and both go
-  // as soon as the force is armed.
+  // as soon as the force is armed. Holding % hides or shows them.
   function updateHints() {
     digitKeys.concat(signKeys).forEach((key) => key.classList.remove('secret-count-hint'));
     const g = guide();   // null while armed
-    if (!g) return;
+    if (!g || !specksOn) return;
     const signKey = signKeys.find((candidate) => candidate.dataset.key === g.op);
     if (signKey) signKey.classList.add('secret-count-hint');
     const count = (g.seq.match(/\d/g) || []).length;
@@ -723,8 +726,7 @@
       lastPointerActivation = { key: k.dataset.key, at: performance.now() };
       return;
     }
-    if (!k || swallowClick || opPeeking || (k === decimalKey && decimalPeeking) ||
-        (k === deleteKey && deleteResetFired)) return;
+    if (!k || swallowClick || opPeeking || (k === decimalKey && decimalPeeking)) return;
     press(k.dataset.key);
     lastPointerActivation = { key: k.dataset.key, at: performance.now() };
   });
@@ -783,32 +785,44 @@
   decimalKey.addEventListener('pointercancel', endDecimalPeek);
   decimalKey.addEventListener('pointerleave', endDecimalPeek);
 
-  // Holding the delete key performs the same complete reset as holding AC.
-  // A short press remains the normal backspace action.
-  let deleteResetTimer = null;
-  let deleteResetFired = false;
-  deleteKey.addEventListener('pointerdown', () => {
-    deleteResetFired = false;
-    if (secret.armed) return;
-    deleteResetTimer = setTimeout(() => {
+  // Holding a key runs onHold instead of its normal action; a short press still does the
+  // normal action. Not while armed, when every key feeds the force.
+  function holdKey(key, onHold) {
+    let timer = null;
+    let fired = false;
+    key.addEventListener('pointerdown', () => {
+      fired = false;
       if (secret.armed) return;
-      deleteResetFired = true;
-      clearTarget();
-      resetAll();
-    }, LONG_PRESS_MS);
+      timer = setTimeout(() => {
+        if (secret.armed) return;
+        fired = true;
+        onHold();
+      }, LONG_PRESS_MS);
+    });
+    const end = () => {
+      clearTimeout(timer);
+      timer = null;
+      if (fired) {
+        // Runs before the keypad's pointerup handler, so the key's normal action is skipped.
+        swallowClick = true;
+        setTimeout(() => { swallowClick = false; }, 300);
+        fired = false;
+      }
+    };
+    key.addEventListener('pointerup', end);
+    key.addEventListener('pointercancel', end);
+    key.addEventListener('pointerleave', end);
+  }
+
+  // Hold delete: the same complete reset as holding AC. A short press is backspace.
+  holdKey(deleteKey, () => { clearTarget(); resetAll(); });
+
+  // Hold %: hide or show the specks, remembered between launches. A short press is %.
+  holdKey(percentKey, () => {
+    specksOn = !specksOn;
+    localStorage.setItem(SPECKS_STORAGE_KEY, specksOn ? 'on' : 'off');
+    updateHints();
   });
-  const endDeleteReset = () => {
-    clearTimeout(deleteResetTimer);
-    deleteResetTimer = null;
-    if (deleteResetFired) {
-      swallowClick = true;
-      setTimeout(() => { swallowClick = false; }, 300);
-      deleteResetFired = false;
-    }
-  };
-  deleteKey.addEventListener('pointerup', endDeleteReset);
-  deleteKey.addEventListener('pointercancel', endDeleteReset);
-  deleteKey.addEventListener('pointerleave', endDeleteReset);
 
   // Swipe on the display deletes the last character (iOS behaviour).
   let swipeStart = null;
