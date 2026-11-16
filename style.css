@@ -137,7 +137,8 @@ button svg {
 .key.fn.pressed, .key.fn.secret-feedback  { background: var(--fn-press); }
 .key.op.pressed, .key.op.secret-feedback  { background: var(--orange-press); }
 
-/* While a force is armed, a small dot under a number key shows how many digits it needs */
+/* With a force number set, a small dot under + or − shows which one reaches it, and one under
+   a number key shows how many digits that takes. Once armed, only the digit-count dot stays. */
 .key.secret-count-hint::after {
   content: "";
   position: absolute;
