@@ -1,65 +1,96 @@
 # calcdm
 
-A working replica of the iOS 26 Calculator, built as a web app you add to your Home Screen, with a forcing mechanism built in. It's made for the [I.C.F. calculator force](https://thedailymagician.com/icf-force), and lets you do the final phase with the phone face up while the spectator drums their fingers on the screen.
+A working replica of the iOS 26 Calculator, built as a web app you add to your Home Screen, with a forcing mechanism built in. It's made for the [I.C.F. calculator force](https://thedailymagician.com/icf-force) and similar routines, and lets you do the final phase with the phone face up while the spectator drums their fingers on the screen.
 
-Live: **https://calcdm.com**
+It works as a normal calculator. Every calculation before the final one is genuine, so the spectator can check the numbers on another calculator afterwards.
+
+## Pick your version
+
+| Link | Numbers look like | For |
+| --- | --- | --- |
+| **[calcdm.com](https://calcdm.com)** or **[calcdm.com/us](https://calcdm.com/us)** | `1,234,567.89` | US |
+| **[calcdm.com/uk](https://calcdm.com/uk)** | `1,234,567.89` | UK, Ireland, Australia |
+| **[calcdm.com/eu](https://calcdm.com/eu)** | `1.234.567,89` | Most of Europe, Brazil |
+
+Each link installs as its own app, so pick one and stick with it.
+
+## Add it to your Home Screen
+
+1. Open your version's link in **Safari** on your iPhone.
+2. Tap **Share** (the square with an upward arrow), then **Add to Home Screen**.
+3. Name it **Calculator** and tap **Add**. Keep **Open as Web App** on if you see it.
+4. Open it once from the Home Screen while online, so it works offline from then on.
+
+The icon looks the same as Apple's Calculator. Put one of them somewhere you'll remember, so you don't open the wrong one in performance.
+
+## Set the force number
+
+1. Open the calculator from your Home Screen.
+2. Type the number you want to force.
+3. **Tap the clock icon** (top left) once.
+
+The display clears and the clock hand swings to **9 o'clock**. That tells you the number is saved. It stays saved if you close and reopen the app.
+
+**Peek at it:** press and hold the decimal key (`.` or `,`, left of `=`). The saved number shows while you hold it.
+
+**Clear it:** press and hold the delete key (top left of the keypad). This resets the calculator and the clock hand goes to **3 o'clock**. You don't need to do this after a performance, because a completed force clears itself.
+
+## Perform the force
+
+1. **Do ordinary calculations.** Let the spectator add, subtract, multiply or divide. Division tends to give long decimals, so use it with care.
+
+2. **Pick the final operator.** Use **+** if the total is below your force number, or **−** if it's above. **×** and **÷** work too.
+
+   Not sure which to use? **Hold** an operator and the display shows the number that would need to follow it. Let go and nothing has changed.
+
+3. **Tap that operator twice.** The force is now armed. The app works out the number needed to reach your force number.
+
+   A **tiny dot** appears under one of the number keys. That number is how many digits will be entered, so you know whether to ask for "a couple" of taps or "a bunch". The dot goes when the tapping starts.
+
+4. **Have the spectator drum their fingers** on the screen. Each tap enters the next digit of the needed number, wherever it lands. Every key works the same way, delete included, so nothing can be undone by accident. The key for each digit entered lights up briefly.
+
+   The clock hand moves to **6 o'clock** when all the digits are in. Have them stop there. Extra taps do nothing.
+
+5. **Press =.** The result is your force number.
+
+## Quick reference
+
+| Do this | It does |
+| --- | --- |
+| Type a number, tap the clock | Saves the force number (clock at 9) |
+| Hold the decimal key | Peeks at the saved number |
+| Hold delete | Full reset, clears the saved number (clock at 3) |
+| Hold an operator | Shows the number needed after it |
+| Tap an operator twice | Arms the force |
+| Dot under a number key | How many digits will be entered |
+| Clock at 6 | All digits in, ready for = |
+
+## Good to know
+
+- The screen goes black if the phone is turned sideways, and comes back in portrait. Keep Rotation Lock on in Control Centre for the closest match to the real app.
+- You can preset the number from an iOS Shortcut by opening your version's link with `?t=1234` on the end, for example `https://calcdm.com/uk/?t=1234`.
+- Tested on an iPhone 14 Pro and an iPhone 15 Pro Max. Sizes scale with screen width, so other modern iPhones should work, but haven't all been checked.
+
+## Credits
+
+- Original app by [Dave Mason](https://github.com/dmaso).
+- One-tap setup, peek and reset gestures, the digit-count dot, the lit keys and the every-key force by [Demian Max](https://github.com/100ratings/sumduo).
+- US English version and instructions by [Andy](https://github.com/andyjermann/sumduo).
+- European number format by [Groschenroman](https://github.com/Groschenroman/calcdm).
+- Started from [andyjermann/fakecalc](https://github.com/andyjermann/fakecalc).
 
 Background:
 
-- [The Daily Magician: the I.C.F. force](https://thedailymagician.com/icf-force), the force itself
+- [The Daily Magician: the I.C.F. force](https://thedailymagician.com/icf-force)
 - [The Jerx: the calculator force, face up](https://www.thejerx.com/blog/2025/5/6/t12u882u8mz4kzsjc0hfh1efgbqdpx)
 - [The Jerx: Carefree Toxic](https://www.thejerx.com/blog/2025/5/13/carefree-toxic)
-- [andyjermann/fakecalc](https://github.com/andyjermann/fakecalc), the static-screenshot version this started from
-
-This is a real calculator with the same pixel geometry as the iOS 26 app, measured from screenshots on an iPhone 14 Pro.
-
-## How it works
-
-It works as a normal calculator but has the forcing mechanism:
-
-1. **Set the force number.** Type a number, then hold the clock icon (top left) for a second. The display clears and the clock hand swings to 9 o'clock, which tells you it's set. Hold the calculator icon (top right) at any time to peek at the number.
-
-2. **Do any calculation.** Any adding, subtracting, multiplying or dividing, as per the normal routine.
-
-3. **When you're ready for the final calculation**, press an operator **twice**: **+** if the running total is below the force number, **−** if it's above, or **×** / **÷** if the force number is a clean multiple or fraction of the total. Nothing visible changes.
-
-   Not sure which to use? **Hold** any operator for a second and the display shows the number the spectator would need to enter after it to hit the force number, whole or not. Let go and the display goes back to normal without pressing the operator.
-
-4. **Every tap anywhere on the screen** then enters the next digit of the number needed to get to the force number. So you can have them drum their fingers over it, or turn it over as in the original routine. A tap with two or three fingers counts as one tap, and it doesn't matter which keys they hit. The clock hand moves to **6 o'clock** when all digits are in, so you know it's done. Extra taps do nothing.
-
-   The one exception is **backspace**, which still deletes the last digit, so a mis-tap can be undone. The clock hand goes back to 9 until the digit is re-entered.
-
-5. **Hit equals.** You get the force number.
-
-The whole thing is self-working, with no shortcuts or mental maths, and you can do it face up. After the reveal the force number clears itself and the clock hand returns to 3 o'clock.
-
-Other things worth knowing:
-
-- Hold the clock icon while the display shows 0 to clear the force number.
-- Numbers show in US format (`1,234.56`) by default. Double-tap the calculator icon to switch to European format (`1.234,56`) and back. A single tap does nothing. A short note at the top shows which one is on, and the choice is remembered.
-- If you pick an operator that doesn't work out cleanly in step 3, the sum on screen won't add up, though **=** still shows the force number. The hold-to-peek shows a minus sign or a decimal when that would happen.
-- While digits are still owed, **C** counts as a tap like any other key. After the digits are complete, **C** abandons the force and keeps the number set.
-- The screen goes black if the phone is turned sideways, and comes back in portrait. The real Calculator would switch to scientific mode, so keep Rotation Lock on in Control Centre for the closest match.
-- You can preset the number from an iOS Shortcut by opening `https://calcdm.com/?t=1234`. It survives relaunching the app until it's used or cleared.
-
-## Add to Home Screen
-
-1. Open https://calcdm.com in **Safari**.
-2. **Share → Add to Home Screen**. Name it **Calculator**. It picks up the real app's icon.
-3. Launch it from the Home Screen once while online so it caches. It then works offline.
-
-Tested on an iPhone 14 Pro. Sizes are expressed relative to screen width, so other iPhones should scale, but they may need a tweak.
 
 ## Development
 
 Static files, no build step.
 
-- `index.html` — markup, with the operator and icon glyphs as inline SVG sized to the reference
-- `style.css` — all geometry as multiples of `--u`, one point on a 393pt-wide screen, anchored to the safe areas
-- `app.js` — calculator engine (iOS precedence, %, ±, backspace, repeated =, swipe-to-delete, the calculation line) and the force logic
-- `manifest.webmanifest`, `sw.js` — Home Screen install and offline cache
-- `reference/` — the iOS screenshots used for calibration and `compare.html`, a dev page that overlays one on the live app (`?ref=ios26|result&mode=diff|half|off`)
-
-Deploy to Netlify with `netlify deploy --prod --dir .` from the project folder (it's linked to the Netlify site).
-
-To host it anywhere else, run `./build.sh` and upload the contents of `dist/` to the web root over SFTP. The site must be served over HTTPS for offline use and Add to Home Screen to work.
+- `index.html`: markup, with the operator and icon glyphs as inline SVG sized to the reference
+- `style.css`: all geometry as multiples of `--u`, one point on a 393pt-wide screen, anchored to the safe areas
+- `app.js`: calculator engine and force logic. The number and date format comes from the path (`/us`, `/uk`, `/eu`).
+- `manifest.webmanifest`, `sw.js`: Home Screen install and offline cache
+- `netlify.toml`: serves the same files at `/us/`, `/uk/` and `/eu/`
