@@ -74,7 +74,7 @@ The display clears and the clock hand swings to **9 o'clock**. That tells you th
 ## Credits
 
 - Original app by [Dave Mason](https://github.com/dmaso).
-- One-tap setup, peek and reset gestures, the digit-count dot, the lit keys and the every-key force by [Demian Max](https://github.com/100ratings/sumduo).
+- One-tap setup, the peek and reset gestures, the digit-count dot, the lit keys, and making every key enter the next digit during the force, by [Demian Max](https://github.com/100ratings/sumduo).
 - US English version and instructions by [Andy](https://github.com/andyjermann/sumduo).
 - European number format by [Groschenroman](https://github.com/Groschenroman/calcdm).
 - Started from [andyjermann/fakecalc](https://github.com/andyjermann/fakecalc).
