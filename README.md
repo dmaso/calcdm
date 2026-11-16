@@ -40,6 +40,8 @@ They update after every key, so you always know whether you're above or below yo
 
 The specks sit just below the symbol, a little to the right, and look like dust on the screen.
 
+**Hide or show the specks:** press and hold `%`. It remembers your choice next time you open the app. A normal tap on `%` still works as percent. With the specks hidden, only the operator that reaches your force number will arm it, so hold an operator to check: the number shown is negative on the wrong one.
+
 No specks means the screen already shows your force number, or the number needed is too long to type (over 9 digits). Do another calculation to bring it back in range.
 
 **Peek at it:** press and hold the decimal key (`.` or `,`, left of `=`). The saved number shows while you hold it.
@@ -67,6 +69,7 @@ No specks means the screen already shows your force number, or the number needed
 | Type a number, tap the clock | Saves the force number (clock at 9) |
 | Hold the decimal key | Peeks at the saved number |
 | Hold delete | Full reset, clears the saved number (clock at 3) |
+| Hold % | Hides or shows the specks |
 | Speck on + or − | The operator that reaches your force number |
 | Speck on a number key | How many digits that takes |
 | Tap the operator with the speck twice | Arms the force |
