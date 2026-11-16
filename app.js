@@ -81,6 +81,7 @@
     placeholder: null,
   };
   let specksOn = localStorage.getItem(SPECKS_STORAGE_KEY) !== 'off';   // hold % to toggle
+  let speckGuide = null;   // what the specks show; only refreshed on = or an operator
   let decimalPeekTimer = null;
   let decimalPeeking = false;
 
@@ -279,6 +280,7 @@
     }
     entry = null;
     rebuild();
+    refreshSpecks();
     render();
   }
 
@@ -336,6 +338,7 @@
     raw = [];
     tokens = [];
     entry = null;
+    refreshSpecks();
     render();
   }
 
@@ -448,12 +451,18 @@
 
   // The live dots. With a force number set and not armed, a dot sits under + or −,
   // whichever reaches the target from what's on screen now, and another under the number
-  // key for how many digits that would take. Both update after every key, and both go
-  // as soon as the force is armed. Holding % hides or shows them.
+  // key for how many digits that would take. They only change when = or an operator is
+  // pressed, so they stay still while numbers are typed. Both go as soon as the force is
+  // armed, and holding % hides or shows them.
+  function refreshSpecks() {
+    speckGuide = guide();
+  }
+
   function updateHints() {
     digitKeys.concat(signKeys).forEach((key) => key.classList.remove('secret-count-hint'));
-    const g = guide();   // null while armed
-    if (!g || !specksOn) return;
+    const g = speckGuide;
+    if (!g || !specksOn || secret.armed || secret.target === null ||
+        newTrick.active || newTrick.ready) return;
     const signKey = signKeys.find((candidate) => candidate.dataset.key === g.op);
     if (signKey) signKey.classList.add('secret-count-hint');
     const count = (g.seq.match(/\d/g) || []).length;
@@ -465,6 +474,7 @@
     if (Number.isNaN(n) || n === null) return clearTarget();
     secret.target = round9(n);
     secret.mode = mode === 'new' ? 'new' : 'classic';
+    speckGuide = null;   // nothing shows until the next = or operator
     localStorage.setItem(STORAGE_KEY, String(secret.target));
     localStorage.setItem(MODE_STORAGE_KEY, secret.mode);
     showTell();
@@ -472,6 +482,7 @@
 
   function clearTarget() {
     secret.target = null;
+    speckGuide = null;
     secret.mode = null;
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem(MODE_STORAGE_KEY);
@@ -566,6 +577,7 @@
   }
 
   function arm(seq) {
+    speckGuide = null;
     secret.seq = seq;
     secret.idx = 0;
     secret.started = false;
@@ -612,7 +624,9 @@
   // ---------- Dispatch ----------
   // Handles key presses from clicks / keyboard. While the force is armed and digits are still
   // owed, taps are consumed by the document-level tap detector below, not here.
+  let keyPressedSinceLaunch = false;
   function press(key) {
+    keyPressedSinceLaunch = true;
     if (secret.armed) {
       if (!forceEntryComplete()) return;
       if (key === '=') return inputEquals();
@@ -934,7 +948,27 @@
   window.addEventListener('resize', () => { window.scrollTo(0, 0); fitDisplay(); });
 
   if ('serviceWorker' in navigator && location.protocol !== 'file:' && !location.search.includes('nosw')) {
-    navigator.serviceWorker.register('sw.js').catch(() => {});
+    // A new deploy installs a new service worker in the background, which takes over this
+    // page. Reload once to run the new version: straight away if no key has been pressed
+    // since launch, otherwise the next time the app comes back to the front while idle.
+    // Never on the first install, and never mid-sum or mid-force.
+    const hadController = !!navigator.serviceWorker.controller;
+    let updateWaiting = false;
+    const idle = () => !secret.armed && !pending() && entry === null &&
+      !newTrick.active && !newTrick.ready;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!hadController) return;
+      if (!keyPressedSinceLaunch && idle()) location.reload();
+      else updateWaiting = true;
+    });
+    navigator.serviceWorker.register('sw.js').then((registration) => {
+      // Coming back from the background isn't a fresh launch, so check for a new version then.
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState !== 'visible') return;
+        if (updateWaiting && idle()) location.reload();
+        else registration.update().catch(() => {});
+      });
+    }).catch(() => {});
   }
 
   loadTarget();
