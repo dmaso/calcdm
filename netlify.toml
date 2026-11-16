@@ -12,6 +12,38 @@
     Content-Type = "application/manifest+json"
 
 [[headers]]
+  for = "/us/manifest.webmanifest"
+  [headers.values]
+    Content-Type = "application/manifest+json"
+
+[[headers]]
+  for = "/uk/manifest.webmanifest"
+  [headers.values]
+    Content-Type = "application/manifest+json"
+
+[[headers]]
+  for = "/eu/manifest.webmanifest"
+  [headers.values]
+    Content-Type = "application/manifest+json"
+
+[[headers]]
   for = "/sw.js"
   [headers.values]
     Service-Worker-Allowed = "/"
+
+# /us/, /uk/ and /eu/ serve the same files as /. The app reads the path to pick the
+# number format and the date order. Each path installs as its own Home Screen app.
+[[redirects]]
+  from = "/us/*"
+  to = "/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/uk/*"
+  to = "/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/eu/*"
+  to = "/:splat"
+  status = 200

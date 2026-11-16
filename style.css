@@ -97,26 +97,6 @@ button svg {
 .round.mode { right: var(--pad-x); }
 .round.pressed { transition: none; background: #3a3a3a; }
 
-/* Brief note between the round buttons (number format switch) */
-.toast {
-  position: absolute;
-  top: calc(var(--safe-top) + 10 * var(--u));
-  left: 50%;
-  transform: translateX(-50%);
-  height: calc(24 * var(--u));
-  padding: 0 calc(12 * var(--u));
-  border-radius: calc(12 * var(--u));
-  background: rgba(255, 255, 255, 0.08);
-  color: #8e8e93;
-  font-size: calc(14 * var(--u));
-  line-height: calc(24 * var(--u));
-  white-space: nowrap;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.25s ease-out;
-}
-.toast.show { opacity: 1; }
-
 /* Keypad. Anchored from the top: in a home-screen web app iOS reports a viewport that is
    shorter than the screen by the status-bar height, so bottom anchoring lands too high.
    The screen aspect ratio is the same on all recent iPhones, so top offsets in --u scale fine. */
@@ -135,6 +115,7 @@ button svg {
 }
 
 .key {
+  position: relative;
   height: var(--btn);
   border-radius: 50%;
   display: flex;
@@ -151,10 +132,24 @@ button svg {
 .key.fn  { background: linear-gradient(160deg, var(--fn) 45%, var(--fn-dark)); }
 .key.op  { background: linear-gradient(180deg, var(--orange) 60%, var(--orange-dark)); }
 
-.key.pressed { transition: none; }
-.key.num.pressed { background: var(--num-press); }
-.key.fn.pressed  { background: var(--fn-press); }
-.key.op.pressed  { background: var(--orange-press); }
+.key.pressed, .key.secret-feedback { transition: none; }
+.key.num.pressed, .key.num.secret-feedback { background: var(--num-press); }
+.key.fn.pressed, .key.fn.secret-feedback  { background: var(--fn-press); }
+.key.op.pressed, .key.op.secret-feedback  { background: var(--orange-press); }
+
+/* While a force is armed, a small dot under a number key shows how many digits it needs */
+.key.secret-count-hint::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 19%;
+  width: calc(2 * var(--u));
+  height: calc(2 * var(--u));
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.88);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
 
 /* Text labels render slightly low relative to the reference; nudge them up */
 .key.num:not([data-key="negate"]), .key.fn[data-key="clear"] { padding-bottom: calc(0.8 * var(--u)); }

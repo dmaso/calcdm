@@ -8,20 +8,32 @@
   const exprTextEl = document.getElementById('exprText');
   const keypad = document.getElementById('keypad');
   const clearKey = document.getElementById('clearKey');
+  const deleteKey = document.querySelector('[data-key="bs"]');
+  const negateKey = document.querySelector('[data-key="negate"]');
   const historyBtn = document.getElementById('historyBtn');
   const modeBtn = document.getElementById('modeBtn');
   const minuteHand = document.getElementById('minuteHand');
-  const decimalKey = keypad.querySelector('[data-key="."]');
-  const toastEl = document.getElementById('toast');
+  const decimalKey = document.querySelector('[data-key="."]');
+  const digitKeys = Array.from(document.querySelectorAll('.key.num')).filter((k) => /^\d$/.test(k.dataset.key));
 
   const MAX_DIGITS = 9;
   const BASE_FONT = 64;
   const MIN_SCALE = 0.75;
   const LONG_PRESS_MS = 700;
   const STORAGE_KEY = 'calc.target';
-  const FORMAT_KEY = 'calc.format';
-  const TOAST_MS = 1400;
-  const DOUBLE_TAP_MS = 400;
+  const MODE_STORAGE_KEY = 'calc.mode';
+
+  // ---------- Version (from the path) ----------
+  // The same files are served at /, /us/, /uk/ and /eu/ (see netlify.toml). The path picks
+  // the number format and the order of the date trick. / is the US version.
+  const VERSIONS = {
+    us: { lang: 'en-US', group: ',', decimal: '.', dayFirst: false },
+    uk: { lang: 'en-GB', group: ',', decimal: '.', dayFirst: true },
+    eu: { lang: 'en', group: '.', decimal: ',', dayFirst: true },
+  };
+  const version = VERSIONS[(location.pathname.match(/^\/(us|uk|eu)(\/|$)/) || [])[1] || 'us'];
+  document.documentElement.lang = version.lang;
+  decimalKey.textContent = version.decimal;
 
   // ---------- Calculator state ----------
   // raw: the expression as entered, alternating numbers and operators, e.g. [55, '+', 6623, '+'].
@@ -29,19 +41,31 @@
   // tokens: the evaluation stack derived from raw, reduced by precedence as iOS does.
   let raw = [];
   let tokens = [];
-  let entry = null; // string being typed ("12.5", "-0"), or null
-  let shown = 0; // result shown when nothing is pending
-  let lastOp = null; // for repeated "="
+  let entry = null;        // string being typed ("12.5", "-0"), or null
+  let shown = 0;           // result shown when nothing is pending
+  let lastOp = null;       // for repeated "="
   let lastOperand = null;
-  let lastExpr = ''; // grey line above a result
+  let lastExpr = '';       // grey line above a result
 
   // ---------- Secret force state ----------
   const secret = {
-    target: null, // number, or null
+    target: null,   // number, or null
+    mode: null,     // 'classic' (clock) or 'new' (calculator icon)
     armed: false,
-    seq: '', // characters to feed, e.g. "1234" or "12.5"
+    started: false,
+    seq: '',        // characters to feed, e.g. "1234" or "12.5"
     idx: 0,
   };
+
+  const newTrick = {
+    active: false,
+    ready: false,
+    spectator: null,
+    base: null,
+    placeholder: null,
+  };
+  let decimalPeekTimer = null;
+  let decimalPeeking = false;
 
   // ---------- Helpers ----------
   const PREC = { '+': 1, '-': 1, '*': 2, '/': 2 };
@@ -49,14 +73,10 @@
 
   function apply(a, op, b) {
     switch (op) {
-      case '+':
-        return a + b;
-      case '-':
-        return a - b;
-      case '*':
-        return a * b;
-      case '/':
-        return b === 0 ? NaN : a / b;
+      case '+': return a + b;
+      case '-': return a - b;
+      case '*': return a * b;
+      case '/': return b === 0 ? NaN : a / b;
     }
     return b;
   }
@@ -66,9 +86,7 @@
     return parseFloat(n.toPrecision(9));
   }
 
-  function pending() {
-    return raw.length > 0;
-  }
+  function pending() { return raw.length > 0; }
 
   // The value the display is "on": the number being typed, the running value of a pending
   // expression, or the last result.
@@ -83,9 +101,7 @@
     while (tokens.length >= 3) {
       const op = tokens[tokens.length - 2];
       if (PREC[op] < minPrec) break;
-      const b = tokens.pop();
-      tokens.pop();
-      const a = tokens.pop();
+      const b = tokens.pop(); tokens.pop(); const a = tokens.pop();
       tokens.push(round9(apply(a, op, b)));
     }
   }
@@ -94,44 +110,26 @@
   function rebuild() {
     tokens = [];
     for (const t of raw) {
-      if (typeof t === 'string') {
-        reduce(PREC[t]);
-        tokens.push(t);
-      } else tokens.push(t);
+      if (typeof t === 'string') { reduce(PREC[t]); tokens.push(t); }
+      else tokens.push(t);
     }
   }
 
-  // Number format: US "1,234.56" or European (DIN 5008) "1.234,56". The engine always uses
-  // "." internally; only the display changes. US is the default.
-  let euro = false;
-  try {
-    euro = localStorage.getItem(FORMAT_KEY) === 'eu';
-  } catch (e) {}
-  function groupSep() {
-    return euro ? '.' : ',';
-  }
-  function decMark() {
-    return euro ? ',' : '.';
-  }
-
-  function groupDigits(intPart) {
-    return intPart.replace(/\B(?=(\d{3})+(?!\d))/g, groupSep());
+  function addThousandsSeparators(intPart) {
+    return intPart.replace(/\B(?=(\d{3})+(?!\d))/g, version.group);
   }
 
   // Format a typed entry string exactly as typed (keeps trailing "." / zeros).
   function formatEntry(s) {
     let neg = false;
-    if (s[0] === '-') {
-      neg = true;
-      s = s.slice(1);
-    }
+    if (s[0] === '-') { neg = true; s = s.slice(1); }
     const [i, f] = s.split('.');
-    let out = groupDigits(i || '0');
-    if (f !== undefined) out += decMark() + f;
+    let out = addThousandsSeparators(i || '0');
+    if (f !== undefined) out += version.decimal + f;
     return (neg ? '-' : '') + out;
   }
 
-  // Format a computed number the way iOS does (9 significant digits, commas, e-notation when huge).
+  // Format a computed number the way iOS does (9 significant digits, grouped, e-notation when huge).
   function formatNumber(n) {
     if (Number.isNaN(n) || !isFinite(n)) return 'Error';
     if (Object.is(n, -0)) return '-0';
@@ -139,50 +137,44 @@
     if (abs !== 0 && (abs >= 1e9 || abs < 1e-8)) {
       let [m, e] = n.toExponential(8).split('e');
       m = m.replace(/\.?0+$/, '');
-      return m.replace('.', decMark()) + 'e' + (e[0] === '+' ? e.slice(1) : e);
+      return m.replace('.', version.decimal) + 'e' + (e[0] === '+' ? e.slice(1) : e);
     }
     let s = String(round9(n));
     if (s.includes('e')) s = n.toFixed(9).replace(/\.?0+$/, '');
     let neg = false;
-    if (s[0] === '-') {
-      neg = true;
-      s = s.slice(1);
-    }
+    if (s[0] === '-') { neg = true; s = s.slice(1); }
     const [i, f] = s.split('.');
-    let out = groupDigits(i);
-    if (f) out += decMark() + f;
+    let out = addThousandsSeparators(i);
+    if (f) out += version.decimal + f;
     return (neg ? '-' : '') + out;
   }
 
-  // A number as a plain entry string (no commas), for turning results into editable entries.
+  // A number as an ungrouped entry string, for turning results into editable entries.
   function toEntry(n) {
     const s = String(round9(n));
     return s.includes('e') || !isFinite(n) ? null : s;
   }
 
   function rawText() {
-    return raw
-      .map((t) => (typeof t === 'string' ? OP_SYMBOL[t] : formatNumber(t)))
-      .join('');
+    return raw.map((t) => (typeof t === 'string' ? OP_SYMBOL[t] : formatNumber(t))).join('');
   }
 
   // The big white line: the expression as it's being built, or the number / result.
   function bigText() {
-    if (pending())
-      return rawText() + (entry !== null ? formatEntry(entry) : '');
+    if (newTrick.ready) return formatNumber(secret.target);
+    if (newTrick.active) return entry !== null ? formatEntry(entry) : formatNumber(newTrick.placeholder);
+    if (pending()) return rawText() + (entry !== null ? formatEntry(entry) : '');
     return entry !== null ? formatEntry(entry) : formatNumber(shown);
   }
 
   // iOS shrinks long text to fit, down to 75% of its size, and beyond that lets it run
   // off the left edge with a fade.
   function fitText(el, container) {
-    el.style.fontSize = ''; // back to the CSS size, which scales with screen width
+    el.style.fontSize = '';   // back to the CSS size, which scales with screen width
     const base = parseFloat(getComputedStyle(el).fontSize) || BASE_FONT;
     const avail = container.clientWidth;
     if (el.scrollWidth > avail) {
-      el.style.fontSize =
-        Math.max(base * MIN_SCALE, (base * avail) / el.scrollWidth).toFixed(2) +
-        'px';
+      el.style.fontSize = Math.max(base * MIN_SCALE, base * avail / el.scrollWidth).toFixed(2) + 'px';
     }
     container.classList.toggle('clipped', el.scrollWidth > avail + 0.5);
   }
@@ -194,12 +186,15 @@
 
   function render() {
     textEl.textContent = bigText();
-    exprTextEl.textContent = pending() ? '' : lastExpr;
-    clearKey.textContent = entry !== null || pending() ? 'C' : 'AC';
+    exprTextEl.textContent = newTrick.ready
+      ? formatNumber(newTrick.base) + '+' + formatNumber(newTrick.spectator)
+      : (pending() ? '' : lastExpr);
+    clearKey.textContent = (entry !== null || pending() || newTrick.active) ? 'C' : 'AC';
     fitDisplay();
   }
 
   function resetAll() {
+    cancelNewTrick();
     raw = [];
     tokens = [];
     entry = null;
@@ -213,8 +208,22 @@
 
   // ---------- Input handlers ----------
   function inputDigit(d) {
+    if (newTrick.ready) return;
+    if (newTrick.active) {
+      if (entry === null) entry = d === '.' ? '0.' : d;
+      else {
+        if (d === '.' && entry.includes('.')) return;
+        const digits = entry.replace(/[-.]/g, '').length;
+        if (d !== '.' && digits >= MAX_DIGITS) return;
+        if (entry === '0' && d !== '.') entry = d;
+        else entry += d;
+      }
+      newTrick.spectator = parseFloat(entry) || 0;
+      render();
+      return;
+    }
     if (entry === null) {
-      if (!pending()) lastExpr = ''; // typing after a result starts fresh
+      if (!pending()) lastExpr = '';   // typing after a result starts fresh
       entry = d === '.' ? '0.' : d;
     } else {
       if (d === '.' && entry.includes('.')) return;
@@ -228,6 +237,13 @@
   }
 
   function inputOperator(op) {
+    if (newTrick.active || newTrick.ready) {
+      return;
+    }
+    if (op === '+' && secret.mode === 'new' && secret.target !== null && !secret.armed) {
+      startNewTrick();
+      return;
+    }
     lastOp = null;
     lastExpr = '';
     const last = raw[raw.length - 1];
@@ -237,7 +253,7 @@
         arm(op);
         return;
       }
-      raw[raw.length - 1] = op; // change the pending operator
+      raw[raw.length - 1] = op;   // change the pending operator
     } else {
       raw.push(currentValue(), op);
     }
@@ -247,10 +263,39 @@
   }
 
   function inputEquals() {
-    if (secret.armed) {
-      finishForce();
+    if (newTrick.active && entry === null) return;
+    if (newTrick.active && !newTrick.ready) {
+      const result = secret.target;
+      newTrick.spectator = currentValue();
+      newTrick.base = round9(result - newTrick.spectator);
+      const expression = formatNumber(newTrick.base) + '+' + formatNumber(newTrick.spectator);
+      clearTarget();
+      cancelNewTrick();
+      entry = null;
+      raw = [];
+      tokens = [];
+      shown = result;
+      lastExpr = expression;
+      lastOp = null;
+      lastOperand = null;
+      render();
       return;
     }
+    if (newTrick.ready) {
+      lastExpr = formatNumber(newTrick.base) + '+' + formatNumber(newTrick.spectator);
+      const result = secret.target;
+      shown = result;
+      raw = [];
+      tokens = [];
+      entry = null;
+      lastOp = null;
+      lastOperand = null;
+      clearTarget();
+      cancelNewTrick();
+      render();
+      return;
+    }
+    if (secret.armed) { finishForce(); return; }
     if (pending()) {
       const v = currentValue();
       lastOp = raw[raw.length - 1];
@@ -262,8 +307,7 @@
       shown = tokens[0];
     } else if (lastOp !== null) {
       const v = currentValue();
-      lastExpr =
-        formatNumber(v) + OP_SYMBOL[lastOp] + formatNumber(lastOperand);
+      lastExpr = formatNumber(v) + OP_SYMBOL[lastOp] + formatNumber(lastOperand);
       shown = round9(apply(v, lastOp, lastOperand));
     } else {
       shown = currentValue();
@@ -292,22 +336,31 @@
     const last = raw[raw.length - 1];
     let result;
     if (typeof last === 'string' && (last === '+' || last === '-')) {
-      result = (tokens[tokens.length - 2] * v) / 100;
+      result = tokens[tokens.length - 2] * v / 100;
     } else {
       result = v / 100;
     }
     result = round9(result);
-    if (pending())
-      entry = toEntry(result) ?? '0'; // becomes the operand being entered
-    else {
-      shown = result;
-      entry = null;
-    }
+    if (pending()) entry = toEntry(result) ?? '0';   // becomes the operand being entered
+    else { shown = result; entry = null; }
     render();
   }
 
   // C clears the number being typed; AC (or C with nothing typed) clears everything.
   function inputClear() {
+    if (newTrick.active || newTrick.ready) {
+      cancelNewTrick();
+      raw = [];
+      tokens = [];
+      entry = null;
+      shown = 0;
+      lastOp = null;
+      lastOperand = null;
+      lastExpr = '';
+      disarm();
+      render();
+      return;
+    }
     if (entry !== null) {
       entry = null;
       if (!pending()) shown = 0;
@@ -322,7 +375,7 @@
   function backspace() {
     if (entry === null) {
       if (pending()) {
-        raw.pop(); // the trailing operator
+        raw.pop();                          // the trailing operator
         entry = toEntry(raw.pop());
         rebuild();
         render();
@@ -330,25 +383,16 @@
       }
       if (shown === 0) return;
       entry = toEntry(shown);
-      if (entry === null) {
-        shown = 0;
-        render();
-        return;
-      }
+      if (entry === null) { shown = 0; render(); return; }
     }
     entry = entry.slice(0, -1);
-    if (entry === '' || entry === '-') {
-      entry = null;
-      if (!pending()) shown = 0;
-    }
+    if (entry === '' || entry === '-') { entry = null; if (!pending()) shown = 0; }
     render();
   }
 
   // ---------- Secret force ----------
   function loadTarget() {
-    const fromUrl =
-      new URLSearchParams(location.search).get('t') ||
-      (location.hash.match(/^#t=(.+)$/) || [])[1];
+    const fromUrl = new URLSearchParams(location.search).get('t') || (location.hash.match(/^#t=(.+)$/) || [])[1];
     if (fromUrl !== undefined && fromUrl !== null && fromUrl !== '') {
       setTarget(parseFloat(fromUrl));
       history.replaceState(null, '', location.pathname);
@@ -359,6 +403,8 @@
       secret.target = parseFloat(stored);
       if (Number.isNaN(secret.target)) secret.target = null;
     }
+    const storedMode = localStorage.getItem(MODE_STORAGE_KEY);
+    secret.mode = storedMode === 'new' || storedMode === 'classic' ? storedMode : (secret.target !== null ? 'classic' : null);
     showTell();
   }
 
@@ -367,35 +413,64 @@
   //   9 o'clock  target set (and while digits are still being fed)
   //   6 o'clock  all delta digits entered, ready for =
   function showTell() {
-    let x2 = 17,
-      y2 = 12; // 3 o'clock
-    if (secret.armed && secret.idx >= secret.seq.length) {
-      x2 = 12;
-      y2 = 17;
-    } // 6 o'clock
-    else if (secret.target !== null) {
-      x2 = 7;
-      y2 = 12;
-    } // 9 o'clock
+    let x2 = 17, y2 = 12;                                   // 3 o'clock
+    if (secret.armed && secret.idx >= secret.seq.length) { x2 = 12; y2 = 17; }   // 6 o'clock
+    else if (secret.target !== null) { x2 = 7; y2 = 12; }  // 9 o'clock
     minuteHand.setAttribute('x2', String(x2));
     minuteHand.setAttribute('y2', String(y2));
+    updateSecretCountHint();
   }
 
-  function setTarget(n) {
+  function updateSecretCountHint() {
+    digitKeys.forEach((key) => key.classList.remove('secret-count-hint'));
+    if (!secret.armed || secret.started) return;
+    const count = (secret.seq.match(/\d/g) || []).length;
+    const key = digitKeys.find((candidate) => candidate.dataset.key === String(count));
+    if (key) key.classList.add('secret-count-hint');
+  }
+
+  function setTarget(n, mode = secret.mode || 'classic') {
     if (Number.isNaN(n) || n === null) return clearTarget();
     secret.target = round9(n);
+    secret.mode = mode === 'new' ? 'new' : 'classic';
     localStorage.setItem(STORAGE_KEY, String(secret.target));
+    localStorage.setItem(MODE_STORAGE_KEY, secret.mode);
     showTell();
   }
 
   function clearTarget() {
     secret.target = null;
+    secret.mode = null;
     localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(MODE_STORAGE_KEY);
     showTell();
   }
 
+  function cancelNewTrick() {
+    newTrick.active = false;
+    newTrick.ready = false;
+    newTrick.spectator = null;
+    newTrick.base = null;
+    newTrick.placeholder = null;
+  }
+
+  function startNewTrick() {
+    cancelNewTrick();
+    newTrick.active = true;
+    newTrick.base = secret.target;
+    newTrick.placeholder = currentValue();
+    raw = [];
+    tokens = [];
+    entry = null;
+    shown = 0;
+    lastExpr = '';
+    render();
+  }
+
+
   function disarm() {
     secret.armed = false;
+    secret.started = false;
     secret.seq = '';
     secret.idx = 0;
     showTell();
@@ -416,29 +491,24 @@
   function solveOperand(t, target) {
     const op = t[t.length - 1];
     if (op === '/') {
-      const f1 = evalWith(t, 1),
-        f2 = evalWith(t, 2);
-      const b = 2 * (f1 - f2),
-        a = f1 - b;
+      const f1 = evalWith(t, 1), f2 = evalWith(t, 2);
+      const b = 2 * (f1 - f2), a = f1 - b;
       return b / (target - a);
     }
-    const f0 = evalWith(t, 0),
-      f1 = evalWith(t, 1);
+    const f0 = evalWith(t, 0), f1 = evalWith(t, 1);
     return (target - f0) / (f1 - f0);
   }
 
   // The token stack there would be after pressing op now (without changing state).
   function prospectiveTokens(op) {
-    const savedRaw = raw,
-      savedTokens = tokens;
+    const savedRaw = raw, savedTokens = tokens;
     raw = raw.slice();
     const last = raw[raw.length - 1];
     if (entry === null && typeof last === 'string') raw[raw.length - 1] = op;
     else raw.push(currentValue(), op);
     rebuild();
     const out = tokens;
-    raw = savedRaw;
-    tokens = savedTokens;
+    raw = savedRaw; tokens = savedTokens;
     return out;
   }
 
@@ -454,6 +524,7 @@
     if (seq.includes('e')) seq = q.toFixed(8).replace(/\.?0+$/, '');
     secret.seq = seq;
     secret.idx = 0;
+    secret.started = false;
     secret.armed = true;
     showTell();
   }
@@ -461,6 +532,7 @@
   function feedForcedChar() {
     if (secret.idx >= secret.seq.length) return;
     const ch = secret.seq[secret.idx++];
+    secret.started = true;
     inputDigit(ch);
     showTell();
   }
@@ -481,7 +553,7 @@
 
   function finishForce() {
     const t = secret.target;
-    lastExpr = bigText(); // reads like a genuine sum, e.g. "25×40"
+    lastExpr = bigText();   // reads like a genuine sum, e.g. "25×40"
     raw = [];
     tokens = [];
     entry = null;
@@ -498,28 +570,17 @@
   // owed, taps are consumed by the document-level tap detector below, not here.
   function press(key) {
     if (secret.armed) {
-      if (key === 'bs') return forceBackspace();
       if (!forceEntryComplete()) return;
       if (key === '=') return inputEquals();
-      if (key === 'clear') return resetAll();
       return;
     }
     switch (key) {
-      case 'clear':
-        return inputClear();
-      case 'bs':
-        return backspace();
-      case 'negate':
-        return inputNegate();
-      case 'percent':
-        return inputPercent();
-      case '+':
-      case '-':
-      case '*':
-      case '/':
-        return inputOperator(key);
-      case '=':
-        return inputEquals();
+      case 'clear': return inputClear();
+      case 'bs': return backspace();
+      case 'negate': return inputNegate();
+      case 'percent': return inputPercent();
+      case '+': case '-': case '*': case '/': return inputOperator(key);
+      case '=': return inputEquals();
       default:
         if (/^[0-9.]$/.test(key)) return inputDigit(key);
     }
@@ -527,49 +588,66 @@
 
   // ---------- Whole-screen tap detection while armed ----------
   // One digit per tap gesture, however many fingers land and wherever they land.
-  // The backspace key is the exception: it deletes instead.
+  // Every tap, including taps on calculator keys, feeds the next forced character.
   const activePointers = new Set();
-  let lastFeedAt = 0;
+  const forcedDigitPointers = new Set();
+  let forcedFeedbackKey = null;
+
+  function clearForcedFeedback() {
+    if (forcedFeedbackKey) forcedFeedbackKey.classList.remove('secret-feedback');
+    forcedFeedbackKey = null;
+  }
+
+  function showForcedFeedback(ch) {
+    clearForcedFeedback();
+    const key = /^\d$/.test(ch) ? digitKeys.find((candidate) => candidate.dataset.key === ch) : (ch === '.' ? decimalKey : null);
+    if (key) {
+      key.classList.add('secret-feedback');
+      forcedFeedbackKey = key;
+    }
+  }
+
   function onAnyPointerDown(e) {
     const wasIdle = activePointers.size === 0;
     activePointers.add(e.pointerId);
     if (!secret.armed || forceEntryComplete()) return;
-    if (e.target.closest && e.target.closest('[data-key="bs"]')) return;
-    const now = performance.now();
-    if (wasIdle && now - lastFeedAt > 150) {
-      lastFeedAt = now;
+    forcedDigitPointers.add(e.pointerId);
+    if (wasIdle) {
+      const forcedChar = secret.seq[secret.idx];
       feedForcedChar();
+      showForcedFeedback(forcedChar);
     }
   }
   function onAnyPointerEnd(e) {
     activePointers.delete(e.pointerId);
+    if (activePointers.size === 0) clearForcedFeedback();
+    // Keep the marker through the keypad's pointerup handler so the same gesture
+    // cannot also activate the physical key after feeding the final character.
+    setTimeout(() => forcedDigitPointers.delete(e.pointerId), 0);
   }
   document.addEventListener('pointerdown', onAnyPointerDown, { capture: true });
   document.addEventListener('pointerup', onAnyPointerEnd, { capture: true });
-  document.addEventListener('pointercancel', onAnyPointerEnd, {
-    capture: true,
-  });
+  document.addEventListener('pointercancel', onAnyPointerEnd, { capture: true });
   // Safety net: if a pointerup ever goes missing, an all-fingers-up touchend resets the tracker.
-  document.addEventListener(
-    'touchend',
-    (e) => {
-      if (e.touches.length === 0) activePointers.clear();
-    },
-    { capture: true },
-  );
-  document.addEventListener(
-    'touchcancel',
-    (e) => {
-      if (e.touches.length === 0) activePointers.clear();
-    },
-    { capture: true },
-  );
-  document.addEventListener('visibilitychange', () => activePointers.clear());
+  const resetTouchTracker = (e) => {
+    if (e.touches.length !== 0) return;
+    activePointers.clear();
+    forcedDigitPointers.clear();
+    clearForcedFeedback();
+  };
+  document.addEventListener('touchend', resetTouchTracker, { capture: true });
+  document.addEventListener('touchcancel', resetTouchTracker, { capture: true });
+  document.addEventListener('visibilitychange', () => {
+    activePointers.clear();
+    forcedDigitPointers.clear();
+    clearForcedFeedback();
+  });
 
   // ---------- Events ----------
   keypad.addEventListener('pointerdown', (e) => {
     const k = e.target.closest('.key');
     if (!k) return;
+    if (forcedDigitPointers.has(e.pointerId)) return;
     k.classList.add('pressed');
   });
   const release = (e) => {
@@ -582,14 +660,37 @@
   keypad.addEventListener('pointerout', release);
 
   let swallowClick = false;
+  let lastPointerActivation = { key: null, at: 0 };
+  let negateConfigActive = false;
   keypad.addEventListener('click', (e) => {
     const k = e.target.closest('.key');
     if (!k) return;
-    if (swallowClick) {
-      swallowClick = false;
+    if (swallowClick) { swallowClick = false; return; }
+    // Mobile browsers synthesize a click after pointerup. Ignore only that
+    // matching click; a later real tap on the same key must still work.
+    if (e.detail !== 0 && lastPointerActivation.key === k.dataset.key &&
+        performance.now() - lastPointerActivation.at < 700) return;
+    press(k.dataset.key);
+  });
+
+  // Process a real touch immediately on pointerup. Mobile browsers synthesize a
+  // delayed click afterward; suppress that click so one touch never enters twice.
+  // The click listener above remains available for keyboard activation and older browsers.
+  keypad.addEventListener('pointerup', (e) => {
+    const k = e.target.closest && e.target.closest('.key');
+    if (k && forcedDigitPointers.has(e.pointerId)) {
+      lastPointerActivation = { key: k.dataset.key, at: performance.now() };
       return;
     }
+    if (k === negateKey && negateConfigActive) {
+      negateConfigActive = false;
+      lastPointerActivation = { key: k.dataset.key, at: performance.now() };
+      return;
+    }
+    if (!k || swallowClick || opPeeking || (k === decimalKey && decimalPeeking) ||
+        (k === deleteKey && deleteResetFired)) return;
     press(k.dataset.key);
+    lastPointerActivation = { key: k.dataset.key, at: performance.now() };
   });
 
   // Hold an operator key (target set, not armed): the display shows the number the
@@ -599,8 +700,7 @@
   let opPeeking = false;
   keypad.addEventListener('pointerdown', (e) => {
     const k = e.target.closest('.key.op');
-    if (!k || !PREC[k.dataset.key] || secret.target === null || secret.armed)
-      return;
+    if (!k || !PREC[k.dataset.key] || secret.target === null || secret.armed) return;
     const op = k.dataset.key;
     clearTimeout(opPeekTimer);
     opPeekTimer = setTimeout(() => {
@@ -610,14 +710,11 @@
     }, LONG_PRESS_MS);
   });
   const endOpPeek = () => {
-    clearTimeout(opPeekTimer);
-    opPeekTimer = null;
+    clearTimeout(opPeekTimer); opPeekTimer = null;
     if (opPeeking) {
       opPeeking = false;
       swallowClick = true;
-      setTimeout(() => {
-        swallowClick = false;
-      }, 300);
+      setTimeout(() => { swallowClick = false; }, 300);
       render();
     }
   };
@@ -625,177 +722,169 @@
   keypad.addEventListener('pointercancel', endOpPeek);
   keypad.addEventListener('pointerleave', endOpPeek, true);
 
+  // Long-pressing the decimal key reveals the configured number; a short press
+  // remains the normal decimal-point input.
+  decimalKey.addEventListener('pointerdown', () => {
+    clearTimeout(decimalPeekTimer);
+    decimalPeekTimer = setTimeout(() => {
+      if (secret.target === null || secret.armed) return;
+      decimalPeeking = true;
+      textEl.textContent = formatNumber(secret.target);
+      fitText(textEl, displayEl);
+    }, LONG_PRESS_MS);
+  });
+  const endDecimalPeek = () => {
+    clearTimeout(decimalPeekTimer);
+    decimalPeekTimer = null;
+    if (decimalPeeking) {
+      decimalPeeking = false;
+      swallowClick = true;
+      setTimeout(() => { swallowClick = false; }, 300);
+      render();
+    }
+  };
+  decimalKey.addEventListener('pointerup', endDecimalPeek);
+  decimalKey.addEventListener('pointercancel', endDecimalPeek);
+  decimalKey.addEventListener('pointerleave', endDecimalPeek);
+
+  // Holding the delete key performs the same complete reset as holding AC.
+  // A short press remains the normal backspace action.
+  let deleteResetTimer = null;
+  let deleteResetFired = false;
+  deleteKey.addEventListener('pointerdown', () => {
+    deleteResetFired = false;
+    if (secret.armed) return;
+    deleteResetTimer = setTimeout(() => {
+      if (secret.armed) return;
+      deleteResetFired = true;
+      clearTarget();
+      resetAll();
+    }, LONG_PRESS_MS);
+  });
+  const endDeleteReset = () => {
+    clearTimeout(deleteResetTimer);
+    deleteResetTimer = null;
+    if (deleteResetFired) {
+      swallowClick = true;
+      setTimeout(() => { swallowClick = false; }, 300);
+      deleteResetFired = false;
+    }
+  };
+  deleteKey.addEventListener('pointerup', endDeleteReset);
+  deleteKey.addEventListener('pointercancel', endDeleteReset);
+  deleteKey.addEventListener('pointerleave', endDeleteReset);
+
   // Swipe on the display deletes the last character (iOS behaviour).
   let swipeStart = null;
-  displayEl.addEventListener('pointerdown', (e) => {
-    swipeStart = { x: e.clientX, y: e.clientY };
-  });
+  displayEl.addEventListener('pointerdown', (e) => { swipeStart = { x: e.clientX, y: e.clientY }; });
   displayEl.addEventListener('pointerup', (e) => {
     if (!swipeStart) return;
-    const dx = e.clientX - swipeStart.x,
-      dy = e.clientY - swipeStart.y;
+    const dx = e.clientX - swipeStart.x, dy = e.clientY - swipeStart.y;
     swipeStart = null;
     if (secret.armed) return;
     if (Math.abs(dx) > 30 && Math.abs(dy) < 50) backspace();
   });
 
-  // Long-press helper for the two round buttons. onTap, if given, runs on a release
-  // before the long press has fired.
-  function longPress(btn, onFire, onRelease, onTap) {
+  // Long-press helper for the two round buttons.
+  function longPress(btn, onFire, onRelease) {
     let timer = null;
     let fired = false;
     btn.addEventListener('pointerdown', () => {
       btn.classList.add('pressed');
       fired = false;
-      timer = setTimeout(() => {
-        fired = true;
-        onFire();
-      }, LONG_PRESS_MS);
+      timer = setTimeout(() => { fired = true; onFire(); }, LONG_PRESS_MS);
     });
     const end = () => {
       btn.classList.remove('pressed');
-      clearTimeout(timer);
-      timer = null;
+      clearTimeout(timer); timer = null;
       if (fired && onRelease) onRelease();
       fired = false;
     };
-    btn.addEventListener('pointerup', () => {
-      const tapped = timer !== null && !fired;
-      end();
-      if (tapped && onTap) onTap();
-    });
+    btn.addEventListener('pointerup', end);
     btn.addEventListener('pointercancel', end);
     btn.addEventListener('pointerleave', end);
     btn.addEventListener('contextmenu', (e) => e.preventDefault());
   }
 
-  // History (clock): long-press sets the number on screen as the target and clears the display.
-  // Long-press with 0 on screen clears the target.
-  longPress(historyBtn, () => {
-    if (secret.armed) return;
+  function configureTargetFromScreen(mode) {
+    if (secret.armed || newTrick.active || newTrick.ready) return false;
     const v = currentValue();
-    if (v !== 0) setTarget(v);
-    else clearTarget();
+    if (v === 0 && entry === null && !pending()) return false;
+    setTarget(v, mode);
     resetAll();
-  });
-
-  // A short note at the top that fades out by itself.
-  let toastTimer = null;
-  function showToast(text) {
-    toastEl.textContent = text;
-    toastEl.classList.add('show');
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => toastEl.classList.remove('show'), TOAST_MS);
+    return true;
   }
 
-  function applyFormat() {
-    decimalKey.textContent = decMark();
-  }
+  function configureDateTimeTarget() {
+    if (secret.armed || newTrick.active || newTrick.ready || pending()) return false;
 
-  // Switch between US and European number format. Not while armed: every tap is a digit then.
-  function toggleFormat() {
-    if (secret.armed) return;
-    euro = !euro;
-    try {
-      localStorage.setItem(FORMAT_KEY, euro ? 'eu' : 'us');
-    } catch (e) {}
-    // The grey line is stored as text, so swap its separators.
-    lastExpr = lastExpr.replace(/[.,]/g, (c) => (c === '.' ? ',' : '.'));
-    applyFormat();
-    render();
-    showToast(euro ? 'European · 1.234,56' : 'US · 1,234.56');
-  }
-
-  // Two taps within DOUBLE_TAP_MS switch the format. A single tap does nothing, so a stray
-  // tap or a peek let go too early can't change the display.
-  let lastModeTapAt = -Infinity;
-  function onModeTap() {
-    const now = performance.now();
-    if (now - lastModeTapAt < DOUBLE_TAP_MS) {
-      lastModeTapAt = -Infinity;
-      toggleFormat();
-    } else {
-      lastModeTapAt = now;
+    let minutesAhead = 0;
+    if (entry !== null) {
+      if (!/^[1-9]$/.test(entry)) return false;
+      minutesAhead = Number(entry);
     }
+
+    const targetDate = new Date();
+    targetDate.setMinutes(targetDate.getMinutes() + minutesAhead);
+
+    const day = String(targetDate.getDate());
+    const month = String(targetDate.getMonth() + 1);
+    const year = String(targetDate.getFullYear()).slice(-2);
+    const hour = String(targetDate.getHours()).padStart(2, '0');
+    const minute = String(targetDate.getMinutes()).padStart(2, '0');
+    const dayMonth = version.dayFirst ? day + month : month + day;
+    const withYear = `${dayMonth}${year}${hour}${minute}`;
+    const withoutYear = `${dayMonth}${hour}${minute}`;
+    const target = Number(withYear.length <= 9 ? withYear : withoutYear);
+
+    setTarget(target, 'classic');
+    resetAll();
+    return true;
   }
 
-  // Mode (calculator icon): double-tap to switch the number format; hold to peek at the
-  // target, the display restores on release.
-  longPress(
-    modeBtn,
-    () => {
-      if (secret.armed || secret.target === null) return;
-      textEl.textContent = formatNumber(secret.target);
-      fitText(textEl, displayEl);
-    },
-    () => render(),
-    onModeTap,
-  );
+  // Clock selects the classic force directly; the calculator icon sets a date/time
+  // target for the same force. The new + trick remains selected with the +/- key.
+  let topPointerHandled = false;
+  const configureFromPointer = (mode) => {
+    topPointerHandled = true;
+    configureTargetFromScreen(mode);
+    setTimeout(() => { topPointerHandled = false; }, 500);
+  };
+  const configureDateTimeFromPointer = () => {
+    topPointerHandled = true;
+    configureDateTimeTarget();
+    setTimeout(() => { topPointerHandled = false; }, 500);
+  };
+  historyBtn.addEventListener('pointerdown', () => configureFromPointer('classic'));
+  modeBtn.addEventListener('pointerdown', configureDateTimeFromPointer);
+  historyBtn.addEventListener('click', () => { if (!topPointerHandled) configureTargetFromScreen('classic'); });
+  modeBtn.addEventListener('click', () => { if (!topPointerHandled) configureDateTimeTarget(); });
+  negateKey.addEventListener('pointerdown', () => {
+    negateConfigActive = configureTargetFromScreen('new');
+  });
 
   document.addEventListener('contextmenu', (e) => e.preventDefault());
   document.addEventListener('gesturestart', (e) => e.preventDefault());
-  document.addEventListener(
-    'touchmove',
-    (e) => {
-      if (e.touches.length > 1) e.preventDefault();
-    },
-    { passive: false },
-  );
+  document.addEventListener('touchmove', (e) => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
 
   // Keyboard support (handy on desktop).
   document.addEventListener('keydown', (e) => {
-    const map = {
-      Enter: '=',
-      '=': '=',
-      Backspace: 'bs',
-      Escape: 'clear',
-      '%': 'percent',
-      x: '*',
-      X: '*',
-      ',': '.',
-    };
+    const map = { Enter: '=', '=': '=', Backspace: 'bs', Escape: 'clear', '%': 'percent', x: '*', X: '*' };
     const key = map[e.key] || e.key;
-    if (
-      /^[0-9.+\-*\/=]$/.test(key) ||
-      key === 'clear' ||
-      key === 'percent' ||
-      key === 'bs'
-    )
-      press(key);
+    if (/^[0-9.+\-*\/=]$/.test(key) || key === 'clear' || key === 'percent' || key === 'bs') press(key);
   });
 
   // Sideways: the CSS blanks the screen. Back in portrait, refit the text and make sure
   // nothing is left scrolled.
-  window.addEventListener('resize', () => {
-    window.scrollTo(0, 0);
-    fitDisplay();
-  });
+  window.addEventListener('resize', () => { window.scrollTo(0, 0); fitDisplay(); });
 
-  if (
-    'serviceWorker' in navigator &&
-    location.protocol !== 'file:' &&
-    !location.search.includes('nosw')
-  ) {
+  if ('serviceWorker' in navigator && location.protocol !== 'file:' && !location.search.includes('nosw')) {
     navigator.serviceWorker.register('sw.js').catch(() => {});
   }
 
   loadTarget();
-  applyFormat();
   render();
 
   // Debug hooks (not visible in UI).
-  window.__calc = {
-    press,
-    state: () => ({
-      raw: raw.slice(),
-      tokens: tokens.slice(),
-      entry,
-      shown,
-      lastExpr,
-      secret: { ...secret },
-    }),
-    setTarget,
-    clearTarget,
-    neededFor,
-  };
+  window.__calc = { press, state: () => ({ raw: raw.slice(), tokens: tokens.slice(), entry, shown, lastExpr, secret: { ...secret } }), setTarget, clearTarget, neededFor };
 })();

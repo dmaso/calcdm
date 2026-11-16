@@ -3,6 +3,13 @@
   <head>
     <meta charset="UTF-8" />
     <title>Calculator</title>
+    <script>
+      // /us, /uk and /eu need a trailing slash, so the relative manifest, styles and
+      // service worker resolve inside that version's folder.
+      if (/^\/(us|uk|eu)$/.test(location.pathname)) {
+        location.replace(location.pathname + "/" + location.search + location.hash);
+      }
+    </script>
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
@@ -21,7 +28,7 @@
   </head>
   <body>
     <main class="calc">
-      <!-- Top-left: history (clock). Long-press sets/clears the target. Minute hand flips when a target is set. -->
+      <!-- Top-left: history (clock). A tap saves the number on screen as the target. The minute hand shows the state. -->
       <button
         class="round history"
         id="historyBtn"
@@ -42,11 +49,11 @@
           <line id="minuteHand" x1="12" y1="12" x2="17" y2="12" />
         </svg>
       </button>
-      <!-- Top-right: calculator mode. Long-press shows the target while held. -->
+      <!-- Top-right: calculator icon. A tap sets the target to the current date and time. -->
       <button
         class="round mode"
         id="modeBtn"
-        aria-label="Calculator mode"
+        aria-label="Calculator"
         type="button"
       >
         <svg viewBox="0 0 26.7 38.7" style="--w: 15.8; --h: 22.5">
@@ -83,7 +90,6 @@
           />
         </svg>
       </button>
-      <div class="toast" id="toast" aria-live="polite"></div>
 
       <div class="expr" id="expr"><span id="exprText"></span></div>
       <div class="display" id="display">
