@@ -51,10 +51,6 @@ html, body {
   background: #000;
   touch-action: manipulation;
 }
-/* Phone held sideways: just go black. The portrait layout is the only one. */
-@media (orientation: landscape) {
-  .calc { visibility: hidden; pointer-events: none; }
-}
 
 button {
   font: inherit;
@@ -144,10 +140,10 @@ button svg {
 .key.secret-count-hint::after {
   content: "";
   position: absolute;
-  left: var(--speck-x, 58%);
-  top: var(--speck-y, 80%);
-  width: calc(var(--speck-size, 1.6) * var(--u));
-  height: calc(var(--speck-size, 1.6) * var(--u));
+  left: calc(50% + var(--speck-dx, 6.7) * var(--u));
+  top: calc(50% + var(--speck-dy, 25.3) * var(--u));
+  width: calc(var(--speck-size, 1.6) * var(--speck-u, var(--u)));
+  height: calc(var(--speck-size, 1.6) * var(--speck-u, var(--u)));
   border-radius: var(--speck-shape, 50%);
   background: rgba(255, 255, 255, 0.8);
   box-shadow: 0 0 calc(0.5 * var(--u)) rgba(255, 255, 255, 0.35);
@@ -207,4 +203,72 @@ button svg {
   white-space: nowrap;
   transform-origin: right bottom;
   will-change: font-size;
+}
+
+/* Landscape, as the basic iOS 26 Calculator lays itself out sideways: the same 20 keys as wide
+   pills in five columns (7 8 9 ⌫ ÷ / 4 5 6 AC × / 1 2 3 % − / ± 0 . = +), the number above
+   on the right. Measured from a 852 x 393 pt screenshot. Here --u is one point of a 393pt-tall
+   screen, so it scales with height; the columns stretch to fill the width between the
+   safe areas. Inside the keypad --u is rescaled to the key height, so labels, glyphs and
+   specks keep their portrait proportions. */
+@media (orientation: landscape) {
+  :root {
+    --u: calc(100vh / 393);
+    --side: calc(max(env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px)) + 16 * var(--u));
+    --btn: calc(47.7 * var(--u));
+    --gap-x: calc(8.1 * var(--u));
+    --gap-y: calc(7.5 * var(--u));
+    --keys-top: calc(151.8 * var(--u));
+    --display-size: calc(40.4 * var(--u));
+    --expr-size: calc(17.5 * var(--u));
+    --speck-u: calc(0.7 * var(--u));
+  }
+
+  .round { top: calc(23.8 * var(--u)); }
+  .round.history { left: calc(38 * var(--u)); }
+  .round.mode { right: calc(38 * var(--u)); }
+
+  .keypad {
+    left: var(--side);
+    right: var(--side);
+    top: var(--keys-top);
+    grid-template-columns: repeat(5, 1fr);
+    --u: calc(var(--btn) / 84.25);
+    --label-size: calc(35 * var(--u));
+  }
+  .key { border-radius: calc(var(--btn) / 2); }
+
+  .expr {
+    left: var(--side);
+    right: calc(var(--side) - 0.5 * var(--u));
+    top: calc(81.1 * var(--u));
+    height: var(--expr-size);
+  }
+  .expr span { font-size: var(--expr-size); }
+  .display {
+    left: var(--side);
+    right: calc(var(--side) + 0.2 * var(--u));
+    top: calc(102.7 * var(--u));
+  }
+
+  .key[data-key="7"]       { order: 1; }
+  .key[data-key="8"]       { order: 2; }
+  .key[data-key="9"]       { order: 3; }
+  .key[data-key="bs"]      { order: 4; }
+  .key[data-key="/"]       { order: 5; }
+  .key[data-key="4"]       { order: 6; }
+  .key[data-key="5"]       { order: 7; }
+  .key[data-key="6"]       { order: 8; }
+  .key[data-key="clear"]   { order: 9; }
+  .key[data-key="*"]       { order: 10; }
+  .key[data-key="1"]       { order: 11; }
+  .key[data-key="2"]       { order: 12; }
+  .key[data-key="3"]       { order: 13; }
+  .key[data-key="percent"] { order: 14; }
+  .key[data-key="-"]       { order: 15; }
+  .key[data-key="negate"]  { order: 16; }
+  .key[data-key="0"]       { order: 17; }
+  .key[data-key="."]       { order: 18; }
+  .key[data-key="="]       { order: 19; }
+  .key[data-key="+"]       { order: 20; }
 }

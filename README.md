@@ -78,14 +78,14 @@ No specks means the screen already shows your force number, or the number needed
 
 ## Good to know
 
-- The screen goes black if the phone is turned sideways, and comes back in portrait. Keep Rotation Lock on in Control Centre for the closest match to the real app.
+- Turned sideways, it switches to the wide landscape layout the real app uses, with the same keys, specks and gestures.
 - You can preset the number from an iOS Shortcut by opening your version's link with `?t=1234` on the end, for example `https://calcdm.com/uk/?t=1234`.
 - Tested on an iPhone 14 Pro and an iPhone 15 Pro Max. Sizes scale with screen width, so other modern iPhones should work, but haven't all been checked.
 
 ## Credits
 
 - Original app by [Dave Mason](https://github.com/dmaso).
-- One-tap setup, the peek and reset gestures, the digit-count dot, the lit keys, making every key enter the next digit during the force, and showing whether to add or subtract, by [Demian Max](https://github.com/100ratings/sumduo).
+- One-tap setup, the peek and reset gestures, the digit-count dot, the lit keys, making every key enter the next digit during the force, showing whether to add or subtract, and the landscape layout, by [Demian Max](https://github.com/100ratings/sumduo).
 - US English version and instructions by [Andy](https://github.com/andyjermann/sumduo).
 - European number format by [Groschenroman](https://github.com/Groschenroman/calcdm).
 - Started from [andyjermann/fakecalc](https://github.com/andyjermann/fakecalc).

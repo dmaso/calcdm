@@ -24,8 +24,10 @@
   const between = (a, b) => a + Math.random() * (b - a);
   digitKeys.concat(signKeys).forEach((key) => {
     const corner = () => between(35, 65).toFixed(0) + '%';
-    key.style.setProperty('--speck-x', between(55, 62).toFixed(1) + '%');
-    key.style.setProperty('--speck-y', between(78, 83).toFixed(1) + '%');
+    // Offsets from the key's centre, in points on a portrait key (84.25pt), so they scale
+    // with the key and land in the same spot on the wider landscape keys.
+    key.style.setProperty('--speck-dx', between(4.2, 10.1).toFixed(1));
+    key.style.setProperty('--speck-dy', between(23.6, 27.8).toFixed(1));
     key.style.setProperty('--speck-size', between(1.4, 1.9).toFixed(2));
     key.style.setProperty('--speck-shape', [corner(), corner(), corner(), corner()].join(' '));
     key.style.setProperty('--speck-rot', between(0, 180).toFixed(0) + 'deg');
@@ -943,8 +945,8 @@
     if (/^[0-9.+\-*\/=]$/.test(key) || key === 'clear' || key === 'percent' || key === 'bs') press(key);
   });
 
-  // Sideways: the CSS blanks the screen. Back in portrait, refit the text and make sure
-  // nothing is left scrolled.
+  // On rotation, refit the text to the new display width and make sure nothing is left
+  // scrolled.
   window.addEventListener('resize', () => { window.scrollTo(0, 0); fitDisplay(); });
 
   if ('serviceWorker' in navigator && location.protocol !== 'file:' && !location.search.includes('nosw')) {
