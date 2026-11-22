@@ -79,6 +79,7 @@ No specks means the screen already shows your force number, or the number needed
 ## Good to know
 
 - Turned sideways, it switches to the wide landscape layout the real app uses, with the same keys, specks and gestures.
+- On the iPhone Duo it uses the Duo Calculator's own 5 × 4 layouts, folded or unfolded, upright or sideways. It re-fits as you fold, unfold or rotate, and keeps the sum and any force in progress, so you can open the phone mid-routine. If the wrong layout shows, add `?screen=cover`, `?screen=inner` or `?screen=iphone` to the link once (`?screen=auto` undoes it). If the keypad sits a little high or low, `?lift=-6` moves it up 6 points (`?lift=0` resets).
 - You can preset the number from an iOS Shortcut by opening your version's link with `?t=1234` on the end, for example `https://calcdm.com/uk/?t=1234`.
 - Tested on an iPhone 14 Pro and an iPhone 15 Pro Max. Sizes scale with screen width, so other modern iPhones should work, but haven't all been checked.
 
@@ -88,6 +89,7 @@ No specks means the screen already shows your force number, or the number needed
 - One-tap setup, the peek and reset gestures, the digit-count dot, the lit keys, making every key enter the next digit during the force, showing whether to add or subtract, and the landscape layout, by [Demian Max](https://github.com/100ratings/sumduo).
 - US English version and instructions by [Andy](https://github.com/andyjermann/sumduo).
 - European number format by [Groschenroman](https://github.com/Groschenroman/calcdm).
+- iPhone Duo layouts, and the fix for the Duo's rotation bug, by [gmadrigal25](https://github.com/gmadrigal25/DuoCalcDM).
 - Started from [andyjermann/fakecalc](https://github.com/andyjermann/fakecalc).
 
 Background:
@@ -103,5 +105,6 @@ Static files, no build step.
 - `index.html`: markup, with the operator and icon glyphs as inline SVG sized to the reference
 - `style.css`: all geometry as multiples of `--u`, one point on a 393pt-wide screen, anchored to the safe areas
 - `app.js`: calculator engine and force logic. The number and date format comes from the path (`/us`, `/uk`, `/eu`).
+- iPhone Duo: `layout()` in `app.js` picks a Duo layout when the physical screen is Duo-shaped (under 1.6:1) and sets its sizes as `--d-*` variables, used by the `.calc.duo` rules at the end of `style.css`. Ordinary iPhones never get the `.duo` class, so they use the stylesheet layout unchanged.
 - `manifest.webmanifest`, `sw.js`: Home Screen install and offline cache
 - `netlify.toml`: serves the same files at `/us/`, `/uk/` and `/eu/`

@@ -2,6 +2,8 @@
   'use strict';
 
   // ---------- DOM ----------
+  const calcEl = document.getElementById('calc');
+  const safeProbe = document.getElementById('safeProbe');
   const displayEl = document.getElementById('display');
   const textEl = document.getElementById('displayText');
   const exprEl = document.getElementById('expr');
@@ -945,9 +947,238 @@
     if (/^[0-9.+\-*\/=]$/.test(key) || key === 'clear' || key === 'percent' || key === 'bs') press(key);
   });
 
-  // On rotation, refit the text to the new display width and make sure nothing is left
-  // scrolled.
-  window.addEventListener('resize', () => { window.scrollTo(0, 0); fitDisplay(); });
+  // ---------- iPhone Duo layouts ----------
+  // From gmadrigal25's DuoCalcDM. On a Duo-shaped screen (folded or unfolded, upright or
+  // sideways) the keypad is the Duo Calculator's 5 x 4, sized here from the live screen, and
+  // re-fitted on every fold, unfold or rotation without touching the sum or a force in progress.
+  // Ordinary iPhones are left to the stylesheet, as before.
+  const DUO = {
+    // ref: screen size the numbers were measured at, in points. side: left/right keypad margin.
+    // keyH: key height ('circle' = as tall as wide). font: big number size.
+    // textGap: big number baseline to keypad. rightBtn: right edge to calculator button.
+    coverPortrait: { ref: [466, 678], side: [16, 16], gap: [10, 10], keyH: 'circle', font: 72, textGap: 24, rightBtn: 104 },
+    coverLandscape: { ref: [678, 466], side: [13.7, 97.3], gap: [10, 10], keyH: 46, font: 47.7, textGap: 16.3, rightBtn: 104 },
+    innerPortrait: { ref: [669, 951], side: [24, 24], gap: [10, 10], keyH: 92.7, font: 111.6, textGap: 36, rightBtn: 20 },
+    // Sideways and unfolded, the status bar only takes the top-right corner (iOS reports it as
+    // a right inset), so the keypad still runs the full width, as in the real app.
+    innerLandscape: { ref: [951, 669], side: [24, 24], gap: [12, 12], keyH: 61.3, font: 75, textGap: 24.7, rightBtn: 20, fullWidthKeypad: true },
+  };
+  const COVER_MAX_SHORT_SIDE = 560;   // cover screen ~466pt across, inner ~669pt
+  const DUO_MAX_RATIO = 1.6;          // iPhones are 1.78 (SE) to 2.17; the Duo's screens ~1.45
+  const BASELINE = 0.86;              // baseline within a line-height:1 box, in em (SF Pro)
+  const SCREEN_STORAGE_KEY = 'calc.screen';
+  const LIFT_STORAGE_KEY = 'calc.lift';
+  let forcedScreen = localStorage.getItem(SCREEN_STORAGE_KEY) || '';   // '', 'cover', 'inner', 'iphone'
+  let lift = parseFloat(localStorage.getItem(LIFT_STORAGE_KEY)) || 0;  // pt, + moves the Duo layout down
+
+  function insets() {
+    const cs = getComputedStyle(safeProbe);
+    return {
+      top: parseFloat(cs.paddingTop) || 0,
+      right: parseFloat(cs.paddingRight) || 0,
+      bottom: parseFloat(cs.paddingBottom) || 0,
+      left: parseFloat(cs.paddingLeft) || 0,
+    };
+  }
+
+  // Which Duo layout, or null for the ordinary iPhone one. Goes by the shape of the physical
+  // screen, which doesn't change when Safari's toolbars come and go, and only on touch screens.
+  function duoMode(W, H) {
+    let kind = forcedScreen;
+    if (kind === 'iphone') return null;
+    if (kind !== 'cover' && kind !== 'inner') {
+      const ratio = Math.max(screen.width, screen.height) / Math.min(screen.width, screen.height);
+      if (!(navigator.maxTouchPoints > 0) || !(ratio < DUO_MAX_RATIO)) return null;
+      kind = Math.min(W, H) < COVER_MAX_SHORT_SIDE ? 'cover' : 'inner';
+    }
+    return kind + (H >= W ? 'Portrait' : 'Landscape');
+  }
+
+  function duoGeometry(W, H, safe, m, landscape) {
+    const sy = H / m.ref[1];
+    let [left, right] = m.side;
+    if (!m.fullWidthKeypad) {
+      // A reserved band on one side (cover screen, sideways). If iOS reports it as a safe
+      // area, don't count it twice; if it's on the left, put the gap there instead.
+      if (safe.left > safe.right && landscape) [left, right] = [right, left];
+      left = Math.max(left, safe.left + Math.min(...m.side));
+      right = Math.max(right, safe.right + Math.min(...m.side));
+    }
+    const [gapX, gapY] = m.gap;
+    const keyW = (W - left - right - 4 * gapX) / 5;
+    const keyH = m.keyH === 'circle'
+      ? Math.min(keyW, (0.56 * H - 3 * gapY) / 4)
+      : Math.min(keyW, m.keyH * sy);
+    const bottom = Math.max(34, safe.bottom);
+    const kpTop = H - bottom - (4 * keyH + 3 * gapY) + lift;
+    const font = m.font * sy;
+    const dispTop = kpTop - m.textGap * sy - BASELINE * font;
+    const exprFont = 0.42 * font;
+    return {
+      keyW, keyH, gapX, gapY, kpLeft: left, kpTop, kpWidth: W - left - right,
+      font, dispTop, exprFont, exprTop: dispTop - 0.2 * font - exprFont,
+      // Sideways on the unfolded Duo the status bar is reported as a right inset, which already
+      // moves the right button clear of it, so the buttons stay at the top as in the real app.
+      round: 48,
+      roundTop: landscape && safe.right >= 40 ? 24 : Math.max(24, safe.top),
+      roundLeft: safe.left + 20,
+      roundRight: Math.max(m.rightBtn, safe.right + 20),
+    };
+  }
+
+  function layout() {
+    const W = calcEl.clientWidth;
+    const H = calcEl.clientHeight;
+    if (!W || !H) return;
+    const mode = duoMode(W, H);
+    calcEl.classList.toggle('duo', mode !== null);
+    calcEl.dataset.mode = mode || (W > H ? 'iphoneLandscape' : 'iphone');
+    if (mode) {
+      const g = duoGeometry(W, H, insets(), DUO[mode], W > H);
+      const px = (n) => n.toFixed(2) + 'px';
+      const vars = {
+        '--d-key-w': px(g.keyW), '--d-key-h': px(g.keyH),
+        '--d-gap-x': px(g.gapX), '--d-gap-y': px(g.gapY),
+        '--d-kp-left': px(g.kpLeft), '--d-kp-top': px(g.kpTop), '--d-kp-width': px(g.kpWidth),
+        '--d-disp-font': px(g.font), '--d-disp-top': px(g.dispTop),
+        '--d-expr-font': px(g.exprFont), '--d-expr-top': px(g.exprTop),
+        '--d-text-left': px(g.kpLeft), '--d-text-right': px(W - g.kpLeft - g.kpWidth),
+        '--d-round': px(g.round), '--d-round-top': px(g.roundTop),
+        '--d-round-left': px(g.roundLeft), '--d-round-right': px(g.roundRight),
+      };
+      for (const k in vars) calcEl.style.setProperty(k, vars[k]);
+    }
+    window.scrollTo(0, 0);
+    fitDisplay();
+  }
+
+  // ----- Recovering from the iOS rotation bug on the unfolded Duo -----
+  // A Home Screen web app opened sideways on the unfolded Duo gets the full height, but after
+  // being turned upright and back, iOS cuts the page 82pt short. Nudge iOS into redoing the
+  // frame by briefly changing the settings it reads; if that fails, reload once, keeping the
+  // sum and any force in progress. Only ever runs in the Duo layouts, as a Home Screen app.
+  const RESUME_KEY = 'calc.resume';
+  const HEAL_KEY = 'calc.heal';
+  let healing = false;
+  let healTimer = null;
+  const session = () => { try { return window.sessionStorage; } catch (e) { return null; } };
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+  const standalone = () => navigator.standalone === true ||
+    (window.matchMedia && matchMedia('(display-mode: standalone)').matches);
+
+  function measureUnit(unit) {
+    const d = document.createElement('div');
+    d.style.cssText = 'position:fixed;top:0;left:0;width:1px;visibility:hidden;height:100' + unit;
+    document.body.appendChild(d);
+    const h = d.getBoundingClientRect().height;
+    d.remove();
+    return Math.round(h * 10) / 10;
+  }
+
+  function frameLooksShort() {
+    if (!calcEl.classList.contains('duo') || !standalone()) return false;
+    if (calcEl.clientWidth <= calcEl.clientHeight) return false;   // only happens sideways
+    const full = measureUnit('lvh') || measureUnit('vh');
+    return full - window.innerHeight > 40;
+  }
+
+  function saveResume() {
+    const s = session();
+    if (!s) return;
+    s.setItem(RESUME_KEY, JSON.stringify({
+      at: Date.now(), raw, tokens, entry, shown, lastOp, lastOperand, lastExpr,
+      secret, newTrick, speckGuide,
+    }));
+  }
+
+  function restoreResume() {
+    const s = session();
+    if (!s) return;
+    let r = null;
+    try { r = JSON.parse(s.getItem(RESUME_KEY) || 'null'); } catch (e) { r = null; }
+    s.removeItem(RESUME_KEY);
+    if (!r || Date.now() - r.at > 20000) return;
+    raw = Array.isArray(r.raw) ? r.raw : [];
+    tokens = Array.isArray(r.tokens) ? r.tokens : [];
+    entry = typeof r.entry === 'string' ? r.entry : null;
+    shown = typeof r.shown === 'number' ? r.shown : 0;
+    lastOp = r.lastOp || null;
+    lastOperand = typeof r.lastOperand === 'number' ? r.lastOperand : null;
+    lastExpr = typeof r.lastExpr === 'string' ? r.lastExpr : '';
+    if (r.secret) Object.assign(secret, r.secret);
+    if (r.newTrick) Object.assign(newTrick, r.newTrick);
+    speckGuide = r.speckGuide || null;
+  }
+
+  async function heal() {
+    if (healing || !frameLooksShort()) return;
+    healing = true;
+    const vp = document.querySelector('meta[name="viewport"]');
+    const sb = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
+
+    const vpOrig = vp.content;
+    vp.content = vpOrig.replace(/,\s*viewport-fit=cover/, '');
+    await wait(80);
+    vp.content = vpOrig;
+    await wait(500);
+    if (!frameLooksShort()) { healing = false; return layout(); }
+
+    const sbOrig = sb.content;
+    sb.content = 'black-translucent';
+    await wait(80);
+    sb.content = sbOrig;
+    await wait(500);
+    if (!frameLooksShort()) { healing = false; return layout(); }
+
+    // Reload at most once in 15 seconds, so it can never loop.
+    const s = session();
+    let last = null;
+    try { last = JSON.parse((s && s.getItem(HEAL_KEY)) || 'null'); } catch (e) { last = null; }
+    if (s && !(last && Date.now() - last.at < 15000)) {
+      s.setItem(HEAL_KEY, JSON.stringify({ at: Date.now() }));
+      saveResume();
+      location.reload();
+      return;
+    }
+    healing = false;
+  }
+
+  function scheduleHeal() {
+    clearTimeout(healTimer);
+    healTimer = setTimeout(heal, 250);
+  }
+
+  // On every size change (rotate, fold, unfold), re-fit the layout and the text, and make
+  // sure nothing is left scrolled.
+  window.addEventListener('resize', () => { layout(); scheduleHeal(); });
+  // iOS settles its sizes a little after a rotation or fold, so check again a few times.
+  const settle = () => {
+    [60, 250, 600, 1200].forEach((ms) => setTimeout(layout, ms));
+    setTimeout(scheduleHeal, 1300);
+  };
+  window.addEventListener('orientationchange', settle);
+  if (screen.orientation) screen.orientation.addEventListener('change', settle);
+  if (window.visualViewport) visualViewport.addEventListener('resize', layout);
+  if (window.ResizeObserver) new ResizeObserver(layout).observe(calcEl);
+
+  // ?screen=cover|inner|iphone picks a layout if the automatic choice is wrong (auto resets).
+  // ?lift=-6 nudges the Duo layout up (negative) or down in points (0 resets). Both are kept.
+  function readLayoutOptions() {
+    const p = new URLSearchParams(location.search);
+    let used = false;
+    if (p.has('screen')) {
+      forcedScreen = ['cover', 'inner', 'iphone'].includes(p.get('screen')) ? p.get('screen') : '';
+      if (forcedScreen) localStorage.setItem(SCREEN_STORAGE_KEY, forcedScreen);
+      else localStorage.removeItem(SCREEN_STORAGE_KEY);
+      used = true;
+    }
+    if (p.has('lift')) {
+      lift = parseFloat(p.get('lift')) || 0;
+      localStorage.setItem(LIFT_STORAGE_KEY, String(lift));
+      used = true;
+    }
+    return used;
+  }
 
   if ('serviceWorker' in navigator && location.protocol !== 'file:' && !location.search.includes('nosw')) {
     // A new deploy installs a new service worker in the background, which takes over this
@@ -973,9 +1204,15 @@
     }).catch(() => {});
   }
 
+  const layoutOptionsUsed = readLayoutOptions();
   loadTarget();
+  if (layoutOptionsUsed) history.replaceState(null, '', location.pathname);
+  restoreResume();
+  showTell();
   render();
+  layout();
+  scheduleHeal();
 
   // Debug hooks (not visible in UI).
-  window.__calc = { press, state: () => ({ raw: raw.slice(), tokens: tokens.slice(), entry, shown, lastExpr, secret: { ...secret } }), setTarget, clearTarget, neededFor, guide };
+  window.__calc = { press, layout, mode: () => calcEl.dataset.mode, state: () => ({ raw: raw.slice(), tokens: tokens.slice(), entry, shown, lastExpr, secret: { ...secret } }), setTarget, clearTarget, neededFor, guide };
 })();

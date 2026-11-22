@@ -272,3 +272,98 @@ button svg {
   .key[data-key="="]       { order: 19; }
   .key[data-key="+"]       { order: 20; }
 }
+
+/* iPhone Duo, folded (cover screen) and unfolded (inner screen), upright and sideways. From
+   gmadrigal25's DuoCalcDM, measured from the Duo's own Calculator. app.js adds .duo and sets the
+   --d-* sizes from the live screen size only on a Duo-shaped screen, so ordinary iPhones keep
+   the layout above. Same 5 x 4 key order as the iPhone landscape layout. */
+.safe-probe {
+  position: absolute;
+  visibility: hidden;
+  pointer-events: none;
+  padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px)
+           env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+}
+
+.calc.duo {
+  /* Colours sampled from the Duo Calculator: flat keys rather than gradients */
+  --orange: #f19837;
+  --orange-dark: #f19837;
+  --orange-press: #f9c995;
+  --fn: #616161;
+  --fn-dark: #616161;
+  --num: #353535;
+  --num-dark: #353535;
+  --top: #1f1f1f;
+  --rim: rgba(255, 255, 255, 0.07);
+}
+
+.calc.duo .round {
+  top: var(--d-round-top);
+  width: var(--d-round);
+  height: var(--d-round);
+  --u: calc(var(--d-round) / 44);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.13), inset 0 0 0 1px var(--rim);
+}
+.calc.duo .round.history { left: var(--d-round-left); }
+.calc.duo .round.mode { right: var(--d-round-right); }
+
+.calc.duo .keypad {
+  left: var(--d-kp-left);
+  right: auto;
+  width: var(--d-kp-width);
+  top: var(--d-kp-top);
+  grid-template-columns: repeat(5, var(--d-key-w));
+  grid-auto-rows: var(--d-key-h);
+  column-gap: var(--d-gap-x);
+  row-gap: var(--d-gap-y);
+  /* Labels, glyphs and specks keep their proportions to the key height */
+  --u: calc(var(--d-key-h) / 84.25);
+  --speck-u: max(calc(var(--d-key-h) / 84.25), 0.7px);
+  --label-size: calc(var(--d-key-h) * 0.43);
+}
+.calc.duo .key {
+  height: var(--d-key-h);
+  border-radius: 999px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.13), inset 0 0 0 1px var(--rim);
+}
+
+.calc.duo .expr {
+  left: var(--d-text-left);
+  right: var(--d-text-right);
+  top: var(--d-expr-top);
+  height: var(--d-expr-font);
+}
+.calc.duo .expr span { font-size: var(--d-expr-font); }
+.calc.duo .display {
+  left: var(--d-text-left);
+  right: var(--d-text-right);
+  top: var(--d-disp-top);
+  height: var(--d-disp-font);
+}
+.calc.duo .display-text { font-size: var(--d-disp-font); }
+.calc.duo .clipped {
+  -webkit-mask-image: linear-gradient(to right, rgba(0, 0, 0, 0), #000 calc(0.38 * var(--d-disp-font)));
+  mask-image: linear-gradient(to right, rgba(0, 0, 0, 0), #000 calc(0.38 * var(--d-disp-font)));
+}
+
+.calc.duo .key[data-key="7"]       { order: 1; }
+.calc.duo .key[data-key="8"]       { order: 2; }
+.calc.duo .key[data-key="9"]       { order: 3; }
+.calc.duo .key[data-key="bs"]      { order: 4; }
+.calc.duo .key[data-key="/"]       { order: 5; }
+.calc.duo .key[data-key="4"]       { order: 6; }
+.calc.duo .key[data-key="5"]       { order: 7; }
+.calc.duo .key[data-key="6"]       { order: 8; }
+.calc.duo .key[data-key="clear"]   { order: 9; }
+.calc.duo .key[data-key="*"]       { order: 10; }
+.calc.duo .key[data-key="1"]       { order: 11; }
+.calc.duo .key[data-key="2"]       { order: 12; }
+.calc.duo .key[data-key="3"]       { order: 13; }
+.calc.duo .key[data-key="percent"] { order: 14; }
+.calc.duo .key[data-key="-"]       { order: 15; }
+.calc.duo .key[data-key="negate"]  { order: 16; }
+.calc.duo .key[data-key="0"]       { order: 17; }
+.calc.duo .key[data-key="."]       { order: 18; }
+.calc.duo .key[data-key="="]       { order: 19; }
+.calc.duo .key[data-key="+"]       { order: 20; }
