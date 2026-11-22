@@ -27,7 +27,9 @@
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <main class="calc">
+    <main class="calc" id="calc">
+      <!-- Reads the safe-area insets for the iPhone Duo layouts in app.js. -->
+      <div class="safe-probe" id="safeProbe" aria-hidden="true"></div>
       <!-- Top-left: history (clock). A tap saves the number on screen as the target. The minute hand shows the state. -->
       <button
         class="round history"
