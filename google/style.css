@@ -1,0 +1,294 @@
+/* Google Calculator (Pixel), version 9.x. Positions and sizes come from app.js (layout()),
+   which follows the app's own layout fractions: toolbar 8.3% of the height, display to 32%,
+   chevron row to 41%, keys below. Colours are Material roles, set by app.js from the
+   palette (the phone's own colours, imported from a screenshot, or Google's defaults). */
+
+@font-face {
+  font-family: "GSF";
+  src: url("fonts/GoogleSansFlex-latin.woff2") format("woff2");
+  font-weight: 1 1000;
+  font-stretch: 25% 151%;
+  font-display: block;
+}
+
+:root {
+  --bg: #131314;
+  --digit-bg: #333537;
+  --digit-fg: #e3e3e3;
+  --op-bg: #004a77;
+  --op-fg: #c2e7ff;
+  --ac-bg: #0842a0;
+  --ac-fg: #d3e3fd;
+  --eq-bg: #6dd58c;
+  --eq-fg: #0a3818;
+  --icon: #c4c7c5;
+  --outline: #8e918f;
+  --panel: #1e1f20;
+  --menu-bg: #333537;
+  --cursor: #a8c7fa;
+  --error: #f2b8b5;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--digit-fg);
+  overflow: hidden;
+  overscroll-behavior: none;
+  -webkit-text-size-adjust: 100%;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  font-family: "GSF", "Google Sans Flex", "Google Sans", Roboto, system-ui, sans-serif;
+}
+
+.calc {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  touch-action: manipulation;
+}
+
+.safe-probe {
+  position: absolute;
+  visibility: hidden;
+  pointer-events: none;
+  padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px)
+           env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+  touch-action: manipulation;
+  cursor: default;
+}
+
+/* ---------- Toolbar and chevron ---------- */
+.icon-btn {
+  position: absolute;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--icon);
+  overflow: hidden;
+}
+.icon-btn svg { width: 24px; height: 24px; display: block; pointer-events: none; }
+#hands { transition: none; }
+
+/* ---------- Display ---------- */
+.display { position: absolute; left: 0; right: 0; }
+.formula-box, .preview-box {
+  position: absolute;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-end;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.formula, .preview {
+  display: block;
+  white-space: pre;
+  line-height: 1.25;
+  font-family: "GSF", "Google Sans Flex", Roboto, sans-serif;
+  font-weight: 400;
+  font-stretch: 84%;
+  font-variation-settings: "ROND" 100;
+  font-feature-settings: "ss02" 1;
+  font-optical-sizing: none;
+  flex: none;
+}
+.formula { color: var(--digit-fg); }
+.formula.result { color: var(--eq-bg); }
+.preview { color: var(--eq-bg); }
+.preview.error { color: var(--error); }
+.cursor {
+  flex: none;
+  width: 2px;
+  margin-left: 1px;
+  background: var(--cursor);
+  animation: blink 1s steps(1) infinite;
+}
+.cursor.off { visibility: hidden; animation: none; }
+@keyframes blink { 50% { opacity: 0; } }
+
+/* ---------- Keys ---------- */
+.keys { position: absolute; inset: 0; pointer-events: none; }
+.key {
+  position: absolute;
+  pointer-events: auto;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  font-family: "GSF", "Google Sans Flex", Roboto, sans-serif;
+  font-weight: 400;
+  font-variation-settings: "ROND" 100;
+  line-height: 1;
+  transition: opacity 0.2s, transform 0.2s;
+}
+.key svg { display: block; pointer-events: none; }
+.key .lbl { pointer-events: none; position: relative; }
+.key.digit { background: var(--digit-bg); color: var(--digit-fg); }
+.key.op { background: var(--op-bg); color: var(--op-fg); }
+.key.ac { background: var(--ac-bg); color: var(--ac-fg); }
+.key.eq { background: var(--eq-bg); color: var(--eq-fg); }
+.key.sci.on { background: var(--ac-bg); color: var(--ac-fg); }
+.key.hidden { opacity: 0; pointer-events: none; visibility: hidden; }
+
+/* Press feedback: Material ripple plus a state layer in the content colour */
+.key::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: currentColor;
+  opacity: 0;
+  transition: opacity 0.15s;
+  pointer-events: none;
+}
+.key.pressed::before { opacity: 0.1; transition: none; }
+.ripple {
+  position: absolute;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.12;
+  transform: scale(0);
+  pointer-events: none;
+  animation: ripple 0.35s cubic-bezier(0.2, 0, 0, 1) forwards;
+}
+.ripple.out { opacity: 0; transition: opacity 0.25s; }
+@keyframes ripple { to { transform: scale(1); } }
+
+/* The specks: with a force number set, one under + or − shows which one reaches it, and one
+   under a number key shows how many digits that takes. Each sits below the symbol, a little to
+   the right, with its own spot, size and shape (set in app.js), so it reads as dust. Sizes are
+   points on an 84.25pt key, scaled by --ks. */
+.key.speck-on::after {
+  content: "";
+  position: absolute;
+  left: calc(50% + var(--speck-dx, 6.7) * var(--ks, 1) * 1px);
+  top: calc(50% + var(--speck-dy, 25.3) * var(--ks, 1) * 1px);
+  width: calc(var(--speck-size, 1.6) * max(var(--ks, 1), 0.8) * 1px);
+  height: calc(var(--speck-size, 1.6) * max(var(--ks, 1), 0.8) * 1px);
+  border-radius: var(--speck-shape, 50%);
+  background: currentColor;
+  opacity: 0.8;
+  transform: translate(-50%, -50%) rotate(var(--speck-rot, 0deg));
+  pointer-events: none;
+}
+
+/* ---------- Menu, dialog, history ---------- */
+.scrim { position: absolute; inset: 0; }
+.scrim.dim { background: rgba(0, 0, 0, 0.32); }
+.menu {
+  position: absolute;
+  min-width: 196px;
+  padding: 8px 0;
+  border-radius: 28px;
+  background: var(--menu-bg);
+  color: var(--digit-fg);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  transform-origin: top right;
+  animation: pop 0.15s ease-out;
+}
+@keyframes pop { from { opacity: 0; transform: scale(0.9); } }
+.menu button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  height: 52px;
+  padding: 0 24px 0 18px;
+  font-size: 16px;
+  font-stretch: 100%;
+  text-align: left;
+  white-space: nowrap;
+}
+.menu svg { width: 24px; height: 24px; color: var(--icon); flex: none; }
+.dialog {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(312px, calc(100% - 48px));
+  transform: translate(-50%, -50%);
+  padding: 24px 0 12px;
+  border-radius: 28px;
+  background: var(--menu-bg);
+  color: var(--digit-fg);
+}
+.dialog h2 { margin: 0 24px 16px; font-size: 24px; font-weight: 400; }
+.dialog label { display: flex; align-items: center; gap: 16px; height: 56px; padding: 0 24px; font-size: 16px; }
+.dialog input { width: 20px; height: 20px; margin: 0; accent-color: var(--cursor); }
+.dialog-actions { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 24px 0; }
+.dialog-actions button { height: 40px; padding: 0 12px; border-radius: 20px; color: var(--cursor); font-size: 14px; font-weight: 500; }
+
+.history {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  background: var(--panel);
+  border-radius: 0 0 28px 28px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.history-list { flex: 1; overflow-y: auto; padding: 16px 24px 8px; display: flex; flex-direction: column; justify-content: flex-end; }
+.history-item { text-align: right; padding: 8px 0; }
+.history-item .f { color: var(--outline); font-size: 22px; font-stretch: 70%; font-variation-settings: "ROND" 100; }
+.history-item .r { color: var(--digit-fg); font-size: 36px; font-stretch: 70%; font-variation-settings: "ROND" 100; opacity: 0.85; }
+.history-empty { color: var(--outline); text-align: center; font-size: 16px; padding: 24px 0; }
+.history-handle { height: 28px; display: flex; align-items: center; justify-content: center; flex: none; }
+.history-handle span { width: 32px; height: 4px; border-radius: 2px; background: var(--outline); }
+
+/* ---------- Secret colour setup ---------- */
+.setup {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  padding: 24px 20px;
+  background: #1b1b1c;
+  color: #e6e6e6;
+  font-family: Roboto, system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.4;
+}
+.setup h2 { margin: 8px 0 8px; font-size: 22px; font-weight: 500; }
+.setup p { margin: 0 0 16px; color: #b9b9bb; }
+.setup-row { display: flex; align-items: center; gap: 12px; margin: 0 0 16px; padding: 12px; border-radius: 16px; background: #2a2a2c; }
+.swatches { display: grid; grid-template-columns: repeat(4, 22px); gap: 4px; flex: none; }
+.swatches span { width: 22px; height: 22px; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.15); }
+.setup-buttons { display: flex; flex-direction: column; gap: 8px; flex: 1; }
+.setup-btn {
+  display: block;
+  text-align: center;
+  padding: 10px 14px;
+  border-radius: 20px;
+  background: #a8c7fa;
+  color: #062e6f;
+  font-weight: 500;
+  font-size: 14px;
+}
+.setup-btn.subtle { background: transparent; color: #a8c7fa; box-shadow: inset 0 0 0 1px #5f6368; }
+.setup-btn input { display: none; }
+.setup-btn.done { width: 100%; margin-top: 8px; }
+.setup-note { min-height: 1.4em; color: #f2b8b5 !important; }
