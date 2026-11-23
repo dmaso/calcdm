@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Calculator</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="color-scheme" content="light dark" />
+    <!-- Status bar and navigation bar colour, matching the background -->
+    <meta name="theme-color" content="#010102" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#f6f6f6" media="(prefers-color-scheme: light)" />
+    <meta name="format-detection" content="telephone=no" />
+    <link rel="icon" href="icon-192.png" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="preload" href="fonts/Roboto-latin.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="calc" id="calc">
+      <div class="safe-probe" id="safeProbe" aria-hidden="true"></div>
+
+      <!-- Top left: history. A tap saves the number on screen as the force number. The
+           minute hand is the tell: 3 o'clock nothing saved, 9 saved, 6 every digit in. -->
+      <button class="icon-btn" id="historyBtn" type="button" aria-label="History">
+        <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 4.4 A8.6 8.6 0 1 1 5.4 7.5" />
+          <path d="M12.9 2.7 L11.1 4.4 L12.9 6.1" />
+          <path d="M12 9.2 V13" />
+          <path id="minuteHand" d="M12 13 H15.2" />
+        </svg>
+      </button>
+
+      <!-- Top right: unit converter and scientific keys -->
+      <button class="icon-btn" id="rulerBtn" type="button" aria-label="Unit converter">
+        <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <g transform="rotate(-45 12 12)">
+            <rect x="3" y="8.6" width="18" height="6.8" rx="1.6" />
+            <path d="M6.6 8.6V11M9.2 8.6V10.4M11.8 8.6V11M14.4 8.6V10.4M17 8.6V11" />
+          </g>
+        </svg>
+      </button>
+      <button class="icon-btn" id="sciBtn" type="button" aria-label="Scientific calculator">
+        <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3.2" y="3.2" width="17.6" height="17.6" rx="2.4" />
+          <path d="M6.9 12.4 L8.6 11.6 L10.4 16 L12.6 8.4 H17.3" />
+        </svg>
+      </button>
+
+      <div class="formula-box" id="formulaBox"><div class="formula" id="formula"><span id="formulaText"></span><span class="cursor" id="cursor"></span></div></div>
+      <div class="preview-box" id="previewBox"><span class="preview" id="preview"></span></div>
+
+      <div class="keys" id="keys"></div>
+
+      <!-- The +/- bubble shown while () is held, as in the real app -->
+      <div class="bubble" id="bubble" hidden>+/−</div>
+      <div class="toast" id="toast" hidden></div>
+    </main>
+    <script src="app.js"></script>
+  </body>
+</html>

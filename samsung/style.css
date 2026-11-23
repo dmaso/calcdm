@@ -1,0 +1,241 @@
+/* Samsung Calculator (One UI 8.5 and 9, app version 12.5.10 and later). Positions and sizes
+   come from app.js (layout()), which follows the app's own layout percentages: top bar 10.184%
+   of the height, expression 20.934%, preview 7.355%, suggestion row 5.658%, keypad the rest,
+   keys 18.075% of the width. Colours are the app's fixed values for light and dark mode. */
+
+@font-face {
+  font-family: "RobotoW";
+  src: url("fonts/Roboto-latin.woff2") format("woff2");
+  font-weight: 100 900;
+  font-display: block;
+}
+
+:root {
+  --bg: #f6f6f6;
+  --num-bg: #fcfcff;
+  --num-fg: #3a3a3d;
+  --fn-fg: #4d4d52;
+  --red: #f56962;
+  --op-bg: #dedede;
+  --op-fg: #3a3a3d;
+  --eq-bg: #25b871;
+  --eq-fg: #fafaff;
+  --sci-bg: #e5eaf3;
+  --sci-eq: #578fff;
+  --expr: #3a3a3d;
+  --accent: #0e8f51;
+  --sci-accent: #2e65d4;
+  --preview: #848487;
+  --icon: #4d4d52;
+  --icon-off: #b4b4b6;
+  --shadow: 0 5px 14px rgba(51, 51, 51, 0.07);
+  --glow-fill: radial-gradient(circle at 50% 45%, #ffffff 0%, #f3fcf6 55%, #e3f7ee 100%);
+  --glow: 0 0 0 1px rgba(170, 236, 200, 0.6), 0 0 14px 3px rgba(150, 228, 160, 0.55), 0 0 26px 6px rgba(153, 222, 210, 0.35);
+  --glow-fg: #41c19f;
+  --glow-red: 0 0 0 1px rgba(255, 200, 200, 0.7), 0 0 14px 3px rgba(252, 200, 230, 0.6), 0 0 26px 6px rgba(255, 200, 200, 0.35);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #010102;
+    --num-bg: #171717;
+    --num-fg: #fcfcff;
+    --fn-fg: #eaeaeb;
+    --red: #ed6968;
+    --op-bg: #282828;
+    --op-fg: #fcfcff;
+    --eq-bg: #197e70;
+    --eq-fg: #fafaff;
+    --sci-bg: #1d202f;
+    --sci-eq: #3a5dba;
+    --expr: #fcfcff;
+    --accent: #5bd4c3;
+    --sci-accent: #91afff;
+    --preview: #848487;
+    --icon: #cccccE;
+    --icon-off: #5a5a5d;
+    --shadow: 0 5px 14px rgba(0, 0, 0, 0.15);
+    --glow-fill: radial-gradient(circle at 50% 45%, #1c2522 0%, #17201d 60%, #142420 100%);
+    --glow: 0 0 0 1px rgba(65, 193, 159, 0.45), 0 0 14px 3px rgba(65, 193, 159, 0.35), 0 0 26px 6px rgba(91, 212, 195, 0.18);
+    --glow-red: 0 0 0 1px rgba(237, 105, 104, 0.45), 0 0 14px 3px rgba(237, 105, 104, 0.3), 0 0 26px 6px rgba(237, 105, 104, 0.15);
+  }
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--num-fg);
+  overflow: hidden;
+  overscroll-behavior: none;
+  -webkit-text-size-adjust: 100%;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  font-family: "RobotoW", Roboto, system-ui, sans-serif;
+}
+
+.calc { position: fixed; inset: 0; background: var(--bg); touch-action: manipulation; }
+
+.safe-probe {
+  position: absolute;
+  visibility: hidden;
+  pointer-events: none;
+  padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px)
+           env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+  touch-action: manipulation;
+  cursor: default;
+}
+
+/* ---------- Top bar ---------- */
+.icon-btn {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--icon);
+  border-radius: 50%;
+}
+.icon-btn svg { width: 24px; height: 24px; display: block; pointer-events: none; }
+.icon-btn.off { color: var(--icon-off); }
+.icon-btn.pressed { background: rgba(128, 128, 128, 0.14); }
+.calc.sci #sciBtn { color: var(--sci-accent); }
+
+/* ---------- Expression and preview ---------- */
+.formula-box, .preview-box {
+  position: absolute;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  overflow: hidden;
+}
+.formula {
+  font-weight: 300;
+  letter-spacing: 0.025em;
+  line-height: 1.2;
+  color: var(--expr);
+  text-align: right;
+  white-space: nowrap;
+  max-width: 100%;
+}
+.formula.wrap { white-space: normal; overflow-wrap: anywhere; word-break: break-all; }
+.formula .o { color: var(--accent); }
+.calc.sci .formula .o { color: var(--sci-accent); }
+.formula.result { color: var(--accent); }
+.calc.sci .formula.result { color: var(--sci-accent); }
+.preview { letter-spacing: 0.025em; font-weight: 300; line-height: 1.2; color: var(--preview); white-space: nowrap; }
+.cursor {
+  display: inline-block;
+  width: 2px;
+  height: 1.15em;
+  margin-left: 2px;
+  vertical-align: -0.2em;
+  background: var(--accent);
+  animation: blink 1s steps(1) infinite;
+}
+.calc.sci .cursor { background: var(--sci-accent); }
+.cursor.off { visibility: hidden; animation: none; }
+@keyframes blink { 50% { opacity: 0; } }
+
+/* ---------- Keys ---------- */
+.keys { position: absolute; inset: 0; pointer-events: none; }
+.key {
+  position: absolute;
+  pointer-events: auto;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 300;
+  line-height: 1;
+  background: var(--num-bg);
+  color: var(--num-fg);
+  box-shadow: var(--shadow);
+  transition: box-shadow 0.25s ease-out, background 0.25s ease-out, color 0.25s ease-out;
+}
+.key .lbl { pointer-events: none; position: relative; }
+.key svg { display: block; pointer-events: none; }
+.key.fn { color: var(--fn-fg); }
+.key.red { color: var(--red); }
+.key.paren { font-weight: 400; }
+.key.op { background: var(--op-bg); color: var(--op-fg); }
+.key.eq { background: var(--eq-bg); color: var(--eq-fg); }
+.calc.sci .key.eq { background: var(--sci-eq); }
+.key.sci { background: var(--sci-bg); color: var(--num-fg); font-weight: 400; }
+.key.sci.on { color: var(--sci-accent); }
+.key.hidden { visibility: hidden; pointer-events: none; }
+
+/* Pressed: the key glows and its symbol turns green, as in One UI 8.5 */
+.key.pressed { transition: none; background: var(--glow-fill); box-shadow: var(--glow); }
+.key.pressed:not(.red):not(.eq) { color: var(--glow-fg); }
+.key.red.pressed { box-shadow: var(--glow-red); }
+.key.op.pressed, .key.sci.pressed { background: var(--glow-fill); }
+.key.eq.pressed { background: var(--eq-bg); filter: brightness(1.08); box-shadow: var(--glow); }
+.calc.sci .key.eq.pressed { background: var(--sci-eq); }
+
+/* The specks: with a force number set, one under + or − shows which one reaches it, and one
+   under a number key shows how many digits that takes. Each sits below the symbol, a little to
+   the right, with its own spot, size and shape (set in app.js), so it reads as dust. Sizes are
+   points on an 84.25pt key, scaled by --ks. */
+.key.speck-on::after {
+  content: "";
+  position: absolute;
+  left: calc(50% + var(--speck-dx, 6.7) * var(--ks, 1) * 1px);
+  top: calc(50% + var(--speck-dy, 25.3) * var(--ks, 1) * 1px);
+  width: calc(var(--speck-size, 1.6) * max(var(--ks, 1), 0.85) * 1px);
+  height: calc(var(--speck-size, 1.6) * max(var(--ks, 1), 0.85) * 1px);
+  border-radius: var(--speck-shape, 50%);
+  background: currentColor;
+  opacity: 0.75;
+  transform: translate(-50%, -50%) rotate(var(--speck-rot, 0deg));
+  pointer-events: none;
+}
+
+/* ---------- +/- bubble and toast ---------- */
+.bubble {
+  position: absolute;
+  padding: 10px 18px;
+  border-radius: 22px;
+  background: var(--num-bg);
+  color: var(--num-fg);
+  font-size: 20px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+  transform: translate(-50%, -100%);
+  pointer-events: none;
+}
+.toast {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: calc(100% - 48px);
+  min-height: 44px;
+  padding: 12px 20px;
+  border-radius: 22px;
+  background: rgba(77, 77, 77, 0.9);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  text-align: center;
+  animation: toast-in 0.2s ease-out;
+  pointer-events: none;
+}
+@keyframes toast-in { from { opacity: 0; } }
