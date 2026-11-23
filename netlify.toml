@@ -27,6 +27,16 @@
     Content-Type = "application/manifest+json"
 
 [[headers]]
+  for = "/google/manifest.webmanifest"
+  [headers.values]
+    Content-Type = "application/manifest+json"
+
+[[headers]]
+  for = "/samsung/manifest.webmanifest"
+  [headers.values]
+    Content-Type = "application/manifest+json"
+
+[[headers]]
   for = "/sw.js"
   [headers.values]
     Service-Worker-Allowed = "/"
